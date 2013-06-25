@@ -1,1 +1,11 @@
-This branch contains the vanilla qmail-1.03 sources
+This branch contains RFC2821 support for qmail-remote
+
+This patch fixes a problem with how qmail handles deliveries to domains which
+have multiple MX records. Normally qmail tries to connect to the various MX
+servers, but the first server it successfully connects to ends up being the
+only one it ever tries.
+
+I've modified the patch so that both 4xx and 5xx messages result in the next
+MX record being tried.
+
+http://www-dt.e-technik.uni-dortmund.de/~ma/qmail/patch-qmail-1.03-rfc2821.diff

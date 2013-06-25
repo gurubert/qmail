@@ -222,8 +222,11 @@ void smtp()
   int flagbother;
   int i;
  
-  if (smtpcode() != 220) quit("ZConnected to "," but greeting failed");
- 
+  code = smtpcode();
+  if (code >= 500 && code < 600) return;
+  if (code >= 400 && code < 500) return; /* try next MX, see RFC-2821 */
+  if (code != 220) quit("ZConnected to "," but greeting failed");
+
   substdio_puts(&smtpto,"HELO ");
   substdio_put(&smtpto,helohost.s,helohost.len);
   substdio_puts(&smtpto,"\r\n");
