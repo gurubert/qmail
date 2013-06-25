@@ -67,11 +67,11 @@ void smtp_greet(code) char *code;
   substdio_puts(&ssout,code);
   substdio_put(&ssout,greeting.s,greeting.len);
 }
-void smtp_help()
+void smtp_help(arg) char *arg;
 {
   out("214 qmail home page: http://pobox.com/~djb/qmail.html\r\n");
 }
-void smtp_quit()
+void smtp_quit(arg) char *arg;
 {
   smtp_greet("221 "); out("\r\n"); flush(); _exit(0);
 }
@@ -232,7 +232,7 @@ void smtp_ehlo(arg) char *arg;
   smtp_greet("250-"); out("\r\n250-PIPELINING\r\n250 8BITMIME\r\n");
   seenmail = 0; dohelo(arg);
 }
-void smtp_rset()
+void smtp_rset(arg) char *arg;
 {
   seenmail = 0;
   out("250 flushed\r\n");
@@ -316,8 +316,8 @@ int *hops;
         if (flagmaybex) if (pos == 7) ++*hops;
         if (pos < 2) if (ch != "\r\n"[pos]) flagmaybey = 0;
         if (flagmaybey) if (pos == 1) flaginheader = 0;
+	++pos;
       }
-      ++pos;
       if (ch == '\n') { pos = 0; flagmaybex = flagmaybey = flagmaybez = 1; }
     }
     switch(state) {
@@ -365,7 +365,7 @@ void acceptmessage(qp) unsigned long qp;
   out("\r\n");
 }
 
-void smtp_data() {
+void smtp_data(arg) char *arg; {
   int hops;
   unsigned long qp;
   char *qqx;
