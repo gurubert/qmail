@@ -8,5 +8,8 @@ extern ipalloc ipme;
 
 extern int ipme_init();
 extern int ipme_is();
+#ifdef INET6
+extern int ipme_is46();
+#endif
 
 #endif

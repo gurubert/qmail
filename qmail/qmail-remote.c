@@ -334,20 +334,6 @@ void getcontrols()
   }
 }
 
-#ifdef INET6
-int ipme_is46(mxip)
-struct ip_mx *mxip;
-{
-  switch(mxip->af) {
-  case AF_INET:
-    return ipme_is(&mxip->addr.ip);
-  case AF_INET6:
-    return ipme_is6(&mxip->addr.ip6);
-  }
-  return 0;
-}
-#endif
-
 int timeoutconn46(fd, ix, port, timeout)
 int fd;
 struct ip_mx *ix;
