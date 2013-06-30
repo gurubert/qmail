@@ -46,7 +46,7 @@ stralloc sender = {0};
 
 saa reciplist = {0};
 
-struct ip_address partner;
+struct ip_mx partner;
 
 void out(s) char *s; { if (substdio_puts(subfdoutsmall,s) == -1) _exit(0); }
 void zero() { if (substdio_put(subfdoutsmall,"\0",1) == -1) _exit(0); }
@@ -89,7 +89,15 @@ zerodie(); }
 void outhost()
 {
   char x[IPFMT];
-  if (substdio_put(subfdoutsmall,x,ip_fmt(x,&partner)) == -1) _exit(0);
+#ifdef INET6
+  if (partner.af == AF_INET) {
+#endif
+  if (substdio_put(subfdoutsmall,x,ip_fmt(x,&partner.addr.ip)) == -1) _exit(0);
+#ifdef INET6
+  } else {
+  if (substdio_put(subfdoutsmall,x,ip6_fmt(x,&partner.addr.ip6)) == -1) _exit(0);
+  }
+#endif
 }
 
 int flagcritical = 0;
@@ -326,6 +334,33 @@ void getcontrols()
   }
 }
 
+#ifdef INET6
+int ipme_is46(mxip)
+struct ip_mx *mxip;
+{
+  switch(mxip->af) {
+  case AF_INET:
+    return ipme_is(&mxip->addr.ip);
+  case AF_INET6:
+    return ipme_is6(&mxip->addr.ip6);
+  }
+  return 0;
+}
+#endif
+
+int timeoutconn46(fd, ix, port, timeout)
+int fd;
+struct ip_mx *ix;
+int port;
+int timeout;
+{
+#ifdef INET6
+	if (ix->af == AF_INET6)
+		return timeoutconn6(fd, &ix->addr.ip6, port, timeout);
+#endif
+	return timeoutconn(fd, &ix->addr.ip, port, timeout);
+}
+
 void main(argc,argv)
 int argc;
 char **argv;
@@ -394,7 +429,11 @@ char **argv;
  
   prefme = 100000;
   for (i = 0;i < ip.len;++i)
-    if (ipme_is(&ip.ix[i].ip))
+#ifdef INET6
+   if (ipme_is46(&ip.ix[i]))
+#else
+   if (ipme_is(&ip.ix[i].addr.ip))
+#endif
       if (ip.ix[i].pref < prefme)
         prefme = ip.ix[i].pref;
  
@@ -409,17 +448,22 @@ char **argv;
     perm_ambigmx();
  
   for (i = 0;i < ip.len;++i) if (ip.ix[i].pref < prefme) {
-    if (tcpto(&ip.ix[i].ip)) continue;
+    if (tcpto(&ip.ix[i])) continue;
  
-    smtpfd = socket(AF_INET,SOCK_STREAM,0);
+    smtpfd = socket(ip.ix[i].af,SOCK_STREAM,0);
     if (smtpfd == -1) temp_oserr();
  
-    if (timeoutconn(smtpfd,&ip.ix[i].ip,(unsigned int) port,timeoutconnect) == 0) {
-      tcpto_err(&ip.ix[i].ip,0);
-      partner = ip.ix[i].ip;
+    if (timeoutconn46(smtpfd,&ip.ix[i],(unsigned int) port,timeoutconnect) == 0)
+	{
+      tcpto_err(&ip.ix[i],0);
+      partner = ip.ix[i];
       smtp(); /* does not return */
     }
-    tcpto_err(&ip.ix[i].ip,errno == error_timeout);
+    tcpto_err(&ip.ix[i],errno == error_timeout
+#ifdef TCPTO_REFUSED
+			|| errno == error_refused
+#endif
+    );
     close(smtpfd);
   }
   
