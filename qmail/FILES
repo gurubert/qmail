@@ -376,6 +376,7 @@ fmt_strn.c
 fmt_uint.c
 fmt_uint0.c
 fmt_ulong.c
+fmt_xlong.c
 scan.h
 scan_ulong.c
 scan_8long.c
