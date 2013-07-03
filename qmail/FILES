@@ -379,6 +379,7 @@ fmt_ulong.c
 scan.h
 scan_ulong.c
 scan_8long.c
+scan_xlong.c
 slurpclose.h
 slurpclose.c
 quote.h
