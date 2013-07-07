@@ -511,6 +511,62 @@ struct ip_mx *ix;
   return 0;
 }
 
+/* return 1 for success otherwise return 0 */
+int getcontrol_helohostbindings(ix)
+struct ip_mx *ix;
+{
+  struct ip_mx outix;
+  if (!get_bind_ixlocal(&outix)) return 0;
+  if (outix.af != ix->af) return 0;
+
+  stralloc bindsa = {0};
+  stralloc helohostname = {0};
+  struct constmap maphelohostbind;
+  char outipstr[IPFMT];
+  int iplen = 0;
+
+  switch(control_readfile(&bindsa,"control/helohostbindings",0)) {
+    case -1:
+      temp_control();
+    case 0:
+      if (!constmap_init_char(&maphelohostbind,"",0,1,'|')) temp_nomem(); break;
+    case 1:
+      if (!constmap_init_char(&maphelohostbind,bindsa.s,bindsa.len,1,'|')) temp_nomem(); break;
+  }
+#ifdef INET6
+  if (outix.af == AF_INET6) {
+    iplen = ip6_fmt(outipstr,&outix.addr.ip6);
+  } else {
+    iplen = ip_fmt(outipstr,&outix.addr.ip);
+  }
+#else
+  iplen = ip_fmt(outipstr,&outix.addr.ip);
+#endif
+  if (iplen > 0) {
+    outipstr[iplen] = 0;
+    stralloc senderip = {0};
+    char *helodomain;
+    if (!stralloc_copyb(&senderip, outipstr, iplen)) temp_nomem();
+    stralloc_0(&senderip);
+    senderip.len--;
+    helodomain = 0;
+    helodomain = constmap(&maphelohostbind,senderip.s,senderip.len);
+    if (helodomain && !*helodomain) helodomain = 0; /* no match */
+    if (helodomain) { /* match */
+      /* copy the helodomain into helohostname */
+      if (!stralloc_copys(&helohostname, helodomain)) temp_nomem();
+      if (!str_equal(helohost.s, helodomain)) {
+        /* set helo name to helohostname */
+        if (!stralloc_copy(&helohost, &helohostname)) temp_nomem();
+        constmap_free(&maphelohostbind);
+        return 1;
+      }
+    }
+  }
+  constmap_free(&maphelohostbind);
+  return 0;
+}
+
 void getcontrols()
 {
   if (control_init() == -1) temp_control();
@@ -649,6 +705,9 @@ char **argv;
     r = getcontrol_outgoingip(&ip.ix[i]);
     if (r == -1) temp_nobind1();
     if (r == -2) temp_nobind2();
+
+    /* for helohostbindings */
+    getcontrol_helohostbindings(&ip.ix[i]);
 
     if (timeoutconn46(smtpfd,&ip.ix[i],(unsigned int) port,timeoutconnect) == 0) {
       tcpto_err(&ip.ix[i],0);
