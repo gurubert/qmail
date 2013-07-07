@@ -114,6 +114,70 @@ arguments.
 always exits zero.
 .SH "CONTROL FILES"
 .TP 5
+.I bindroutes
+Artificial interface binding routes for IPv4 addresses.
+Each route has the form
+.IR remote-IPv4-address\fB|\fIlocal-IPv4-address ,
+without any extra spaces.
+If the IPv4 address of the host to which we are delivering matches the remote
+IPv4 address, then bind the socket to the interface matching the local
+IPv4 address, making it appear as if the connection had originated from the
+named local IPv4 address instead of the default local IPv4 address.
+.I bindroutes
+may contain suffix wildcards.
+
+Send this on the internal net
+.EX
+   10.|10.0.0.1
+.EE
+
+Rest goes on external
+.B mail
+address (yes, its bogus!)
+.EX
+   |301.32.1.1
+.EE
+
+Hey, we could
+.B cheat
+on stopping qmail-remote sending to this host
+.EX
+   555.123.123.123|this-isnt-an-ipv4-address
+.EE
+
+.TP 5
+.I bindroutes6
+Artificial interface binding routes for IPv6 addresses.
+Each route has the form
+.IR remote-IPv6-address\fB|\fIlocal-IPv6-address ,
+without any extra spaces.
+If the IPv6 address of the host to which we are delivering matches the remote
+IPv6 address, then bind the socket to the interface matching the local
+IPv6 address, making it appear as if the connection had originated from the
+named local IPv6 address instead of the default local IPv6 address.
+.I bindroutes6
+may contain suffix wildcards.
+
+Send this on the internal net
+.EX
+   2001:|2001:db8::1
+.EE
+
+Rest goes on external
+.B mail
+address (yes, its bogus!)
+.EX
+   |1100:2200:3300::4
+.EE
+
+Hey, we could
+.B cheat
+on stopping qmail-remote sending to this host
+.EX
+   1100:2200:3300:4400:|this-isnt-an-ipv6-address
+.EE
+
+.TP 5
 .I helohost
 Current host name,
 for use solely in saying hello to the remote SMTP server.

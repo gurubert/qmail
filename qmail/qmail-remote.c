@@ -56,6 +56,8 @@ for (i = 0;i < sa->len;++i) {
 ch = sa->s[i]; if (ch < 33) ch = '?'; if (ch > 126) ch = '?';
 if (substdio_put(subfdoutsmall,&ch,1) == -1) _exit(0); } }
 
+void temp_nobind1() { out("ZUnable to initialize ixlocal (-1). (#4.3.0)\n"); zerodie(); }
+void temp_nobind2() { out("ZUnable to set ixlocal (-2). (#4.3.0)\n"); zerodie(); }
 void temp_nomem() { out("ZOut of memory. (#4.3.0)\n"); zerodie(); }
 void temp_oserr() { out("Z\
 System resources temporarily unavailable. (#4.3.0)\n"); zerodie(); }
@@ -353,28 +355,29 @@ char **argv;
 {
   static ipalloc ip = {0};
   int i;
+  int r;
   unsigned long random;
   char **recips;
   unsigned long prefme;
   int flagallaliases;
   int flagalias;
   char *relayhost;
- 
+
   sig_pipeignore();
   if (argc < 4) perm_usage();
   if (chdir(auto_qmail) == -1) temp_chdir();
   getcontrols();
- 
- 
+
+
   if (!stralloc_copys(&host,argv[1])) temp_nomem();
- 
+
   relayhost = 0;
   for (i = 0;i <= host.len;++i)
     if ((i == 0) || (i == host.len) || (host.s[i] == '.'))
       if (relayhost = constmap(&maproutes,host.s + i,host.len - i))
         break;
   if (relayhost && !*relayhost) relayhost = 0;
- 
+
   if (relayhost) {
     i = str_chr(relayhost,':');
     if (relayhost[i]) {
@@ -386,10 +389,10 @@ char **argv;
 
 
   addrmangle(&sender,argv[2],&flagalias,0);
- 
+
   if (!saa_readyplus(&reciplist,0)) temp_nomem();
   if (ipme_init() != 1) temp_oserr();
- 
+
   flagallaliases = 1;
   recips = argv + 3;
   while (*recips) {
@@ -401,7 +404,7 @@ char **argv;
     ++recips;
   }
 
- 
+
   random = now() + (getpid() << 16);
   switch (relayhost ? dns_ip(&ip,&host) : dns_mxip(&ip,&host,random)) {
     case DNS_MEM: temp_nomem();
@@ -410,9 +413,9 @@ char **argv;
     case 1:
       if (ip.len <= 0) temp_dns();
   }
- 
+
   if (ip.len <= 0) perm_nomx();
- 
+
   prefme = 100000;
   for (i = 0;i < ip.len;++i)
 #ifdef INET6
@@ -422,25 +425,29 @@ char **argv;
 #endif
       if (ip.ix[i].pref < prefme)
         prefme = ip.ix[i].pref;
- 
+
   if (relayhost) prefme = 300000;
   if (flagallaliases) prefme = 500000;
- 
+
   for (i = 0;i < ip.len;++i)
     if (ip.ix[i].pref < prefme)
       break;
- 
+
   if (i >= ip.len)
     perm_ambigmx();
- 
+
   for (i = 0;i < ip.len;++i) if (ip.ix[i].pref < prefme) {
     if (tcpto(&ip.ix[i])) continue;
- 
+
     smtpfd = socket(ip.ix[i].af,SOCK_STREAM,0);
     if (smtpfd == -1) temp_oserr();
- 
-    if (timeoutconn46(smtpfd,&ip.ix[i],(unsigned int) port,timeoutconnect) == 0)
-	{
+
+    /* for bindroutes */
+    r = bind_by_bindroutes(&ip.ix[i], 0);
+    if (r == -1) temp_nobind1();
+    if (r == -2) temp_nobind2();
+
+    if (timeoutconn46(smtpfd,&ip.ix[i],(unsigned int) port,timeoutconnect) == 0) {
       tcpto_err(&ip.ix[i],0);
       partner = ip.ix[i];
       smtp(); /* does not return */
