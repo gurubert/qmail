@@ -145,6 +145,10 @@ on stopping qmail-remote sending to this host
    555.123.123.123|this-isnt-an-ipv4-address
 .EE
 
+.IR bindroutes
+takes precedence over
+.IR outgoingip
+in IPv4 network.
 .TP 5
 .I bindroutes6
 Artificial interface binding routes for IPv6 addresses.
@@ -177,6 +181,10 @@ on stopping qmail-remote sending to this host
    1100:2200:3300:4400:|this-isnt-an-ipv6-address
 .EE
 
+.IR bindroutes6
+takes precedence over
+.IR outgoingip6
+in IPv6 network.
 .TP 5
 .I helohost
 Current host name,
@@ -187,6 +195,20 @@ if that is supplied;
 otherwise
 .B qmail-remote
 refuses to run.
+.TP 5
+.I outgoingip
+IPv4 address to be used on outgoing IPv4 connections.
+Default: system-defined.
+The value
+.IR 0.0.0.0
+is equivalent to the system default.
+.TP 5
+.I outgoingip6
+IPv6 address to be used on outgoing IPv6 connections.
+Default: system-defined.
+The value
+.IR 0:0:0:0:0:0:0:0
+is equivalent to the system default.
 .TP 5
 .I smtproutes
 Artificial SMTP routes.

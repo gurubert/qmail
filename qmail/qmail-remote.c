@@ -56,6 +56,10 @@ for (i = 0;i < sa->len;++i) {
 ch = sa->s[i]; if (ch < 33) ch = '?'; if (ch > 126) ch = '?';
 if (substdio_put(subfdoutsmall,&ch,1) == -1) _exit(0); } }
 
+#ifdef INET6
+void temp_noip6() { out("Zinvalid IPv6 address in control/outgoingip6 (#4.3.0)\n"); zerodie(); }
+#endif
+void temp_noip() { out("Zinvalid IPv4 address in control/outgoingip (#4.3.0)\n"); zerodie(); }
 void temp_nobind1() { out("ZUnable to initialize ixlocal (-1). (#4.3.0)\n"); zerodie(); }
 void temp_nobind2() { out("ZUnable to set ixlocal (-2). (#4.3.0)\n"); zerodie(); }
 void temp_nomem() { out("ZOut of memory. (#4.3.0)\n"); zerodie(); }
@@ -318,6 +322,89 @@ int flagcname;
   if (!stralloc_cat(saout,&canonhost)) temp_nomem();
 }
 
+/* return 1 if need to change ip otherwise return 0
+ * if initialize outix failed, return -1 instead
+ */
+int getcontrol_outgoingip(ix)
+struct ip_mx *ix;
+{
+  struct ip_mx outix;
+  /* initialize outix first */
+  if (!ip_mx_init(&outix)) return -1;
+  stralloc outipsa = {0};
+  int r;
+  int outgoingipok = 0;
+  /* for IPv4 is control/outgoingip and IPv6 is control/outgoingip6 */
+#ifdef INET6
+  int x = 0;
+  if (ix->af == AF_INET6) {
+    r = control_readline(&outipsa,"control/outgoingip6");
+    if (-1 == r) { if (errno == error_nomem) temp_nomem(); temp_control(); }
+    if (0 == r && !stralloc_copys(&outipsa, "0000:0000:0000:0000:0000:0000:0000:0000")) temp_nomem();
+    /* http://tools.ietf.org/html/rfc3513#section-2.5.2 The Unspecified Address */
+    /* 0:0:0:0:0:0:0:0 or :: or ::0 or ::/128 or ::0/128 or 0000::0/128 */
+    /* NOTE: currently not support parsing IPv6 with '/' character */
+    if (str_equal(outipsa.s, "0:0:0:0:0:0:0:0") ||
+        str_equal(outipsa.s, "::") ||
+        str_equal(outipsa.s, "::0") ||
+        str_equal(outipsa.s, "::/128") ||
+        str_equal(outipsa.s, "::0/128") ||
+        str_equal(outipsa.s, "0000::0/128") ||
+        str_equal(outipsa.s, "0000:0000:0000:0000:0000:0000:0000:0000")) {
+      if (!stralloc_copys(&outipsa, "0000:0000:0000:0000:0000:0000:0000:0000")) temp_nomem();
+      if (!ip6_scan(outipsa.s, &outix.addr.ip6)) temp_noip6();
+      x++;
+    } else {
+      if (!ip6_scan(outipsa.s, &outix.addr.ip6)) temp_noip6();
+      x++;
+    }
+    if (x > 0) {
+      char ipstr[IPFMT];
+      int iplen = 0;
+      iplen = ip6_fmt(ipstr, &outix.addr.ip6);
+      ipstr[iplen] = 0;
+      if (iplen > 0 && !str_equal(ipstr,"0:0:0:0:0:0:0:0")
+        && !str_equal(ipstr,"::") && !str_equal(ipstr,"::0")
+        && !str_equal(ipstr, "0000:0000:0000:0000:0000:0000:0000:0000")) {
+        outix.af = ix->af;
+        outgoingipok = 1;
+      }
+    }
+  } else {
+    r = control_readline(&outipsa,"control/outgoingip");
+    if (-1 == r) { if (errno == error_nomem) temp_nomem(); temp_control(); }
+    if (0 == r && !stralloc_copys(&outipsa, "0.0.0.0")) temp_nomem();
+    /* IPv4 The Unspecified Address is 0.0.0.0 */
+    if (str_equal(outipsa.s, "0.0.0.0")) {
+      outix.addr.ip.d[0] = outix.addr.ip.d[1] = outix.addr.ip.d[2] = outix.addr.ip.d[3] = (unsigned long)0;
+    }
+    else if (!ip_scan(outipsa.s, &outix.addr.ip)) temp_noip();
+    if (outix.addr.ip.d[0] || outix.addr.ip.d[1] || outix.addr.ip.d[2] || outix.addr.ip.d[3]) {
+      if (!ipme_is(&outix.addr.ip)) temp_noip();
+      outix.af = ix->af;
+      outgoingipok = 1;
+    }
+  }
+#else
+  r = control_readline(&outipsa,"control/outgoingip");
+  if (-1 == r) { if (errno == error_nomem) temp_nomem(); temp_control(); }
+  if (0 == r && !stralloc_copys(&outipsa, "0.0.0.0")) temp_nomem();
+  if (str_equal(outipsa.s, "0.0.0.0")) {
+    outix.addr.ip.d[0] = outix.addr.ip.d[1] = outix.addr.ip.d[2] = outix.addr.ip.d[3] = (unsigned long)0;
+  }
+  else if (!ip_scan(outipsa.s, &outix.addr.ip)) temp_noip();
+  if (outix.addr.ip.d[0] || outix.addr.ip.d[1] || outix.addr.ip.d[2] || outix.addr.ip.d[3]) {
+    if (!ipme_is(&outix.addr.ip)) temp_noip();
+    outix.af = ix->af;
+    outgoingipok = 1;
+  }
+#endif
+  if (outgoingipok > 0) {
+    return bind_by_changeoutgoingip(&outix, 0);
+  }
+  return 0;
+}
+
 void getcontrols()
 {
   if (control_init() == -1) temp_control();
@@ -343,10 +430,10 @@ int port;
 int timeout;
 {
 #ifdef INET6
-	if (ix->af == AF_INET6)
-		return timeoutconn6(fd, &ix->addr.ip6, port, timeout);
+  if (ix->af == AF_INET6)
+    return timeoutconn6(fd, &ix->addr.ip6, port, timeout);
 #endif
-	return timeoutconn(fd, &ix->addr.ip, port, timeout);
+  return timeoutconn(fd, &ix->addr.ip, port, timeout);
 }
 
 void main(argc,argv)
@@ -444,6 +531,11 @@ char **argv;
 
     /* for bindroutes */
     r = bind_by_bindroutes(&ip.ix[i], 0);
+    if (r == -1) temp_nobind1();
+    if (r == -2) temp_nobind2();
+
+    /* for outgoingip/outgoingip6 */
+    r = getcontrol_outgoingip(&ip.ix[i]);
     if (r == -1) temp_nobind1();
     if (r == -2) temp_nobind2();
 
