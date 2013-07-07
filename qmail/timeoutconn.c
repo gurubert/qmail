@@ -35,6 +35,62 @@ struct ip_mx *ix;
   return 1;
 }
 
+/* get current ixlocal address
+ * return -1 if copy ixlocal into oix failed
+ * otherwise return bindlocal=0|1
+ */
+int get_bind_ixlocal(oix)
+struct ip_mx *oix;
+{
+  oix->af = ixlocal.af;
+#ifdef INET6
+  byte_copy(&oix->addr.ip6.d,16,&ixlocal.addr.ip6.d);
+  if (!byte_equal(&oix->addr.ip6.d,16,&ixlocal.addr.ip6.d)) return -1;
+#endif
+  byte_copy(&oix->addr.ip.d,4,&ixlocal.addr.ip.d);
+  if (!byte_equal(&oix->addr.ip.d,4,&ixlocal.addr.ip.d)) return -1;
+  return 1;
+}
+
+/* change outgoing ip i.e. copy oix to ixlocal
+ * return 1 for success
+ * if already set ixlocal due to bindlocal return 0
+ * if initialize ixlocal failed, return -1 instead
+ * if copy oix to ixlocal failed, return -2
+ */
+int bind_by_changeoutgoingip(oix,force)
+struct ip_mx *oix;
+int force;
+{
+  if (!bindlocal) {
+    if (ip_mx_init(&ixlocal) == 0) return -1;
+  }
+  if (!force) if (bindlocal) return 0; /* already bind so we skip it */
+#ifdef INET6
+  if (!byte_equal(&oix->addr.ip6.d,16,V6any)) {
+    byte_copy(&ixlocal.addr.ip6.d,16,&oix->addr.ip6.d);
+    if (!byte_equal(&ixlocal.addr.ip6.d,16,&oix->addr.ip6.d)) return -2;
+  }
+#endif
+  if (!byte_equal(&oix->addr.ip.d,4,V6any)) {
+    byte_copy(&ixlocal.addr.ip.d,4,&oix->addr.ip.d);
+    if (!byte_equal(&ixlocal.addr.ip.d,4,&oix->addr.ip.d)) return -2;
+  }
+#ifdef INET6
+  if (oix->af == AF_INET6) {
+    ixlocal.af = AF_INET6;
+    bindlocal = 1;
+  } else {
+    ixlocal.af = AF_INET;
+    bindlocal = 1;
+  }
+#else
+  ixlocal.af = AF_INET;
+  bindlocal = 1;
+#endif
+  return bindlocal;
+}
+
 /* Modified from http://qmail.org/local-bind
  * return 1 if successfully set ixlocal otherwise return 0
  * if initialize ixlocal failed, return -1 instead
