@@ -57,8 +57,12 @@ ch = sa->s[i]; if (ch < 33) ch = '?'; if (ch > 126) ch = '?';
 if (substdio_put(subfdoutsmall,&ch,1) == -1) _exit(0); } }
 
 #ifdef INET6
+void temp_badip6() { out("Z\
+Unable to parse IPv6 address in control/domainbindings6 (#4.3.0)\n"); zerodie(); }
 void temp_noip6() { out("Zinvalid IPv6 address in control/outgoingip6 (#4.3.0)\n"); zerodie(); }
 #endif
+void temp_badip() { out("Z\
+Unable to parse IP address in control/domainbindings (#4.3.0)\n"); zerodie(); }
 void temp_noip() { out("Zinvalid IPv4 address in control/outgoingip (#4.3.0)\n"); zerodie(); }
 void temp_nobind1() { out("ZUnable to initialize ixlocal (-1). (#4.3.0)\n"); zerodie(); }
 void temp_nobind2() { out("ZUnable to set ixlocal (-2). (#4.3.0)\n"); zerodie(); }
@@ -405,6 +409,108 @@ struct ip_mx *ix;
   return 0;
 }
 
+/* return 1 if need to change ip otherwise return 0
+ * if initialize outix failed, return -1 instead
+ */
+int getcontrol_domainbindings(ix)
+struct ip_mx *ix;
+{
+  struct ip_mx outix;
+  /* initialize outix first */
+  if (!ip_mx_init(&outix)) return -1;
+
+  stralloc outdomain = {0};
+  stralloc outsa = {0};
+  struct constmap mapsenderips;
+  char *senderdomain;
+  char *senderip;
+  int x;
+  /* for IPv4 is control/domainbindings and IPv6 is control/domainbindings6 */
+#ifdef INET6
+  if (ix->af == AF_INET6) {
+    switch(control_readfile(&outsa,"control/domainbindings6",0)) {
+      case -1:
+        temp_control();
+      case 0:
+        if (!constmap_init_char(&mapsenderips,"",0,1,'|')) temp_nomem(); break;
+      case 1:
+        if (!constmap_init_char(&mapsenderips,outsa.s,outsa.len,1,'|')) temp_nomem(); break;
+    }
+  } else {
+    switch(control_readfile(&outsa,"control/domainbindings",0)) {
+      case -1:
+        temp_control();
+      case 0:
+        if (!constmap_init_char(&mapsenderips,"",0,1,'|')) temp_nomem(); break;
+      case 1:
+        if (!constmap_init_char(&mapsenderips,outsa.s,outsa.len,1,'|')) temp_nomem(); break;
+    }
+  }
+#else
+  switch(control_readfile(&outsa,"control/domainbindings",0)) {
+    case -1:
+      temp_control();
+    case 0:
+      if (!constmap_init_char(&mapsenderips,"",0,1,'|')) temp_nomem(); break;
+    case 1:
+      if (!constmap_init_char(&mapsenderips,outsa.s,outsa.len,1,'|')) temp_nomem(); break;
+  }
+#endif
+  /* we can't use canonhost here since it will be the recipient by now hence we need to use sender.s */
+  senderdomain = 0;
+  if (sender.len > 0) {
+    x = str_rchr(sender.s,'@');
+    if (x) {
+      senderdomain = sender.s + x + 1;
+    }
+    stralloc_copyb(&outdomain,senderdomain,sender.len - x - 1);
+  }
+  senderip = 0;
+  if (outdomain.len > 0 && outdomain.s) {
+    for (x = 0; x <= outdomain.len; ++x) {
+      if ((x == 0) || (x == outdomain.len) || (outdomain.s[x] == '.')) {
+        if (senderip = constmap(&mapsenderips,outdomain.s + x,outdomain.len - x)) break;
+      }
+    }
+  }
+  if (senderip && !*senderip) senderip = 0;
+  if (senderip) {
+    int domainbindingipok = 0;
+#ifdef INET6
+    if (ix->af == AF_INET6) {
+      /* check for ':' colon character for simple IPv6 address */
+      if (byte_chr(senderip,str_len(senderip),':') == str_len(senderip)) temp_badip6();
+      if (!ip6_scan(senderip,&outix.addr.ip6)) temp_badip6();
+      //if (!ipme_is46(&outix)) temp_badip6(); /* why this isn't working :( */
+      //if (!ipme_is6(&outix.addr.ip6)) temp_badip6(); /* why this isn't working as well :( */
+      domainbindingipok = 1;
+    } else {
+      if (!ip_scan(senderip,&outix.addr.ip)) temp_badip();
+      if (!ipme_is(&outix.addr.ip)) temp_badip();
+      domainbindingipok = 1;
+    }
+#else
+    if (!ip_scan(senderip,&outix.addr.ip)) temp_badip();
+    if (!ipme_is(&outix.addr.ip)) temp_badip();
+    domainbindingipok = 1;
+#endif
+    if (domainbindingipok > 0) {
+      outix.af = ix->af;
+      x = bind_by_changeoutgoingip(&outix,1);
+      if (x == 1) {
+        /* set helo name to sender's domain */
+        if (!stralloc_copy(&helohost,&outdomain)) temp_nomem();
+        constmap_free(&mapsenderips);
+      } else {
+        constmap_free(&mapsenderips);
+      }
+      return x;
+    }
+  }
+  constmap_free(&mapsenderips);
+  return 0;
+}
+
 void getcontrols()
 {
   if (control_init() == -1) temp_control();
@@ -528,6 +634,11 @@ char **argv;
 
     smtpfd = socket(ip.ix[i].af,SOCK_STREAM,0);
     if (smtpfd == -1) temp_oserr();
+
+    /* for domainbindings */
+    r = getcontrol_domainbindings(&ip.ix[i]);
+    if (r == -1) temp_nobind1();
+    if (r == -2) temp_nobind2();
 
     /* for bindroutes */
     r = bind_by_bindroutes(&ip.ix[i], 0);

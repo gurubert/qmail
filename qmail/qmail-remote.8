@@ -186,6 +186,116 @@ takes precedence over
 .IR outgoingip6
 in IPv6 network.
 .TP 5
+.I domainbindings
+Local IPv4 bindings based on envelope sender domain.
+Each binding has the form
+.IR domain\fB|\fIlocal-IPv4-address ,
+without any extra spaces.
+If
+.I domain
+matches
+.IR host ,
+.B qmail-remote
+will bind the local side of the socket for the outgoing IPv4 connection to
+.IR local-IPv4-address .
+.I local-IPv4-address
+may be empty;
+this tells
+.B qmail-remote
+to let the OS choose the local IPv4 address for outgoing connections as usual.
+.I domainbindings
+may include wildcards:
+
+.EX
+   example.com|5.6.7.8
+   .example.com|5.6.7.9
+   heaven.af.mil|1.2.3.4
+.EE
+
+Here the IPv4 connection for any message with an envelope sender address
+ending with
+.B .example.com
+(but not
+.B example.com
+itself)
+is bound to local IPv4 address
+.BR 5.6.7.9 ,
+while envelope senders in
+.B example.com
+are bound to
+.BR 5.6.7.8 ,
+and senders in
+.B heaven.af.mil
+are bound to
+.BR 1.2.3.4 .
+All other outgoing IPv4 connections (including messages with the null
+return-path)
+use the OS-chosen default local IPv4 address. The
+.B qmail
+system does not protect you if you specify an invalid local IPv4 address to
+bind to.
+
+.IR domainbindings
+takes precedence over
+.IR bindroutes
+and
+.IR outgoingip .
+.TP 5
+.I domainbindings6
+Local IPv6 bindings based on envelope sender domain.
+Each binding has the form
+.IR domain\fB|\fIlocal-IPv6-address ,
+without any extra spaces.
+If
+.I domain
+matches
+.IR host ,
+.B qmail-remote
+will bind the local side of the socket for the outgoing IPv6 connection to
+.IR local-IPv6-address .
+.I local-IPv6-address
+may be empty;
+this tells
+.B qmail-remote
+to let the OS choose the local IPv6 address for outgoing connections as usual.
+.I domainbindings6
+may include wildcards:
+
+.EX
+   example.com|1100:2200:3300::8
+   .example.com|1100:2200:3300::9
+   heaven.af.mil|1100:2200:3300::4
+.EE
+
+Here the IPv6 connection for any message with an envelope sender address
+ending with
+.B .example.com
+(but not
+.B example.com
+itself)
+is bound to local IPv6 address
+.BR 1100:2200:3300::9 ,
+while envelope senders in
+.B example.com
+are bound to
+.BR 1100:2200:3300::8 ,
+and senders in
+.B heaven.af.mil
+are bound to
+.BR 1100:2200:3300::4 .
+All other outgoing IPv6 connections (including messages with the null
+return-path)
+use the OS-chosen default local IPv6 address. The
+.B qmail
+system does not protect you if you specify an invalid local IPv6 address to
+bind to.
+
+.IR domainbindings6
+takes precedence over
+.IR bindroutes6
+and
+.IR outgoingip6 .
+.TP 5
 .I helohost
 Current host name,
 for use solely in saying hello to the remote SMTP server.
@@ -194,7 +304,13 @@ Default:
 if that is supplied;
 otherwise
 .B qmail-remote
-refuses to run.
+refuses to run.  If the envelope sender address matches a domain in the
+.IR domainbindings
+control file for IPv4 connections, the envelope sender domain will be used
+instead of this value.  Likewise for IPv6 connections, if the envelope sender
+address matches a domain in the
+.IR domainbindings6
+control file, the envelope sender domain will be used instead of this value.
 .TP 5
 .I outgoingip
 IPv4 address to be used on outgoing IPv4 connections.
