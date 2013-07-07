@@ -777,7 +777,7 @@ compile instcheck.c strerr.h error.h readwrite.h exit.h
 	./compile instcheck.c
 
 ip.o: \
-compile ip.c fmt.h scan.h ip.h
+compile ip.c fmt.h scan.h ip.h byte.h
 	./compile ip.c
 
 ipalloc.o: \
