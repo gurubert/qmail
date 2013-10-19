@@ -1,1 +1,4 @@
-This branch contains the vanilla qmail-1.03 sources
+This branch contains the badmailfrom patch
+
+Taken from https://github.com/bruceg/qmail-patches/blob/master/qmtpd-badmailfrom-1.1.patch
+
