@@ -611,3 +611,4 @@ uint32_unpack.o
 wait_nohang.o
 wait_pid.o
 wildmat.o
+qregex.o

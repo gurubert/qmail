@@ -46,6 +46,14 @@ Programs included with qmail which invoke
 will invoke the contents of
 .B QMAILQUEUE
 instead, if that environment variable is set.
+
+.SH "CONTROL FILES"
+.TP 5
+.I taps
+Should contain regex syntax of email addresses to tap and
+the associated email address to send the copy to. The two
+fields should be separated by a colon.
+
 .SH "FILESYSTEM RESTRICTIONS"
 .B qmail-queue
 imposes two constraints on the queue structure:

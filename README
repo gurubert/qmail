@@ -3,3 +3,46 @@ This branch contains the SPAMCONTROL patch.
 http://fehcom.de/qmail/spamcontrol.html
 
 SPAMCONTROL is a qmail extension. Though mainly used to filter and control unsolicited commercial E-Mails (UCE/SPAM), since release 2 it includes substantial ESMTP protocol enhancements for qmail.
+
+This branch contains the qmail-tap patch
+
+See http://www.inter7.com/?page=qmailtap
+
+qmail provides the ability to make a copy of each email that flows through the system. This is done using the QUEUE_EXTRA code. See FAQ #8.2
+
+New Release version 1.1 Mon Jun 6 13:18:04 CDT 2005
+This version allows for setting a different email address for each line in the taps control file. The new syntax is "email address to tap":"Address to send the copy to".
+For example:
+.*@domain.com:archive@example.com
+user@otherdomain.com:admin@example.com
+
+The qmail tap patch adds additional functionality:
+Specify which email addresses tap using a regex style control file. With the regex function, you can specify full domains or individual email addresses.
+Specify which email address to send the tapped email address.
+Qmail does not need to be restarted to change the above. Just update the taps control file.
+The regex match is applied to both the to and from email addresses. So email sent to or from the addresses will be copied.
+
+Government Regulations
+
+This code was written to satisfy the regulatory requirements of United States Financial Institutions who need to keep archives of email.
+
+The patch also satisfies requirements for German E-Mail Service providers by the new (Jan 05) German TR-Internet (TKÜV §11). Futher documents in German language can be found here
+
+A Swiss Email Administrator reports that the patch also satisfies Swiss requirements.
+
+New Control File
+
+control/taps Contains a regex style list of addresses to tap and the email address to send the copy to, separated by a colon.
+
+Examples
+
+To tap all email and send a copy to admin@example.com add a line like:
+.*:admin@example.com
+
+To tap a whole domain and send a copy to admin@example.com add a line like:
+.*@domain.com:admin@example.com
+
+To tap an individual email address and send a copy to archive@example.com add a line like:
+user@domain.com:archive@example.com
+
+Note: This patch includes the qregex files needed by qmail-queue for regex matches.
