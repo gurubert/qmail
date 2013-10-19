@@ -1,1 +1,73 @@
-This branch contains the vanilla qmail-1.03 sources
+This branch contains the ISO C patch
+
+qmail-1.03.isoc.patch by James Craig Burley
+http://thedjbway.b0llix.net/qmail/patches/qmail-1.03.isoc.patch
+
+qmail is written in a dialect of C known as "K&R", sometimes referred to as
+"traditional C". The K&R dialect precedes and is less formally specified than
+what is now known as Standard C or ISO C.
+
+Time marches on. Since qmail was released we have new formal standards,
+updated compilers, and new platforms. Not only are K&R idioms considered
+deprecated, they may be problematic on some platforms when the default int
+types implied by K&R may be a different size than pointers.
+
+James Craig Burley has developed this patch to remove some ambiguities of
+argument types in the K&R idioms used by qmail. This patch may be required to
+run qmail safely on the latest 64-bit platforms, where the default int is
+32-bit, but pointers are 64-bit. Otherwise, on 32-bit platforms this patch is
+not necessary.
+
+Patch URL (patch file no longer exists):
+
+http://www.jcb-sc.com/qmail/patches/qmail-isoc.html
+
+Alternate URL:
+
+http://thedjbway.b0llix.net/qmail/patches/qmail-1.03.isoc.patch
+
+This patch is Copyright (C) 2004 by James Craig Burley.  License
+below.
+
+2004-01-19 0040 EST  James Craig Burley  <craig-qmail@jcb-sc.com>
+
+This patch improves ISO C conformance of qmail code -- specifically,
+of qmail-lspawn, qmail-newmrh, qmail-newu, qmail-pop3d, qmail-popup,
+qmail-rspawn, and qmail-smtpd.  This fixes two known bugs:
+
+  -  qmail-smtpd can be crashed by a client sending a sufficiently
+     long (e.g. 2GB) header line in an email.
+
+  -  qmail_lspawn, qmail-newmrh, qmail-newu, and qmail-rspawn might
+     crash or otherwise misbehave on hosts with a smaller "int" type
+     than "char *" type, e.g. 64-bit hosts with 32-bit "int"s.
+
+The other changes are unlikely to have any effect, except possibly on
+unusual architectures and/or in the presence of rare optimizations.
+
+This is Version 1 of this patch.  It adds the changes to
+cdbmake_add.c, spawn.c, and, correspondingly, Makefile, which pertain
+to the second bug listed above.
+
+See all my qmail patches at <http://www.jcb-sc.com/qmail/patches/>.
+
+License:
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
