@@ -1,1 +1,7 @@
-This branch contains the vanilla qmail-1.03 sources
+This branch contains the 0.0.0.0 patch.
+
+qmail ought to recognize 0.0.0.0 as a local IP address. This patch from
+Scott Gifford implements that change.
+
+http://www.tir.com/~sgifford/qmail/qmail-0.0.0.0.patch
+
