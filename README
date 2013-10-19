@@ -1,1 +1,2 @@
 This branch contains the IPv6 support for qmail
+This branch contains the errno.h patch for glibc >= 2.3.x
