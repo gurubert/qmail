@@ -1,1 +1,7 @@
-This branch contains the vanilla qmail-1.03 sources
+This branch contains the qmail-local-fix by Erik Sjoelund
+
+Fixes a bug (a logic error) in qmail-local.
+
+More information can be read at:
+
+http://memoryhole.net/qmail/bugfix.qmail-local.patch
