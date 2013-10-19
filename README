@@ -1,1 +1,33 @@
-This branch contains the vanilla qmail-1.03 sources
+This branch contains the qmail-1.03.qmtpd-netstring.patch
+
+This patch corrects a programming error in
+the getlen() and main() routines of qmail-qmtpd.c.
+
+These routines read input length in netstring format.
+But the original code does not test for numeric validity
+in the length field of the netstring.
+
+As a consquence, it is possible for an attacker to design
+input to create a buffer overflow.
+
+This patch modifies the original to perform validity
+checking when reading the length field of the netstring.
+
+George Guninski documents this bug at:
+
+  http://www.guninski.com/qmail-qmtpd.html
+
+For additional information about qmail and patches,
+see:
+
+  http://www.thedjbway.org/qmail/patches.html
+
+PUBLIC DOMAIN.
+NO WARRANTY.
+USE AT YOUR OWN RISK.  Etc, etc., etc.
+
+wcm, 2004.10.04 - 2004.10.04
+
+See http://thedjbway.b0llix.net/qmail/patches/qmail-1.03.qmtpd-netstring.patch
+for more information.
+
