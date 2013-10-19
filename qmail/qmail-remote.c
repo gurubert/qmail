@@ -28,6 +28,7 @@
 #include "timeoutconn.h"
 #include "timeoutread.h"
 #include "timeoutwrite.h"
+#include "base64.h"
 
 #define HUGESMTPTEXT 5000
 
@@ -43,6 +44,10 @@ stralloc routes = {0};
 struct constmap maproutes;
 stralloc host = {0};
 stralloc sender = {0};
+stralloc auth_smtp_user = {0};
+stralloc auth_smtp_pass = {0};
+stralloc auth_b64_user = {0};
+stralloc auth_b64_pass = {0};
 
 saa reciplist = {0};
 
@@ -85,6 +90,16 @@ void perm_ambigmx() { out("D\
 Sorry. Although I'm listed as a best-preference MX or A for that host,\n\
 it isn't in my control/locals file, so I don't treat it as local. (#5.4.6)\n");
 zerodie(); }
+void auth_user_not_set() {
+  out("Kuser and password not set, continuing without authentication.\n");
+  zero();
+  substdio_flush(subfdoutsmall);
+}
+void no_supported_auth() {
+  out("Kno supported AUTH method found, continuing without authentication.\n");
+  zero();
+  substdio_flush(subfdoutsmall);
+}
 
 void outhost()
 {
@@ -216,24 +231,72 @@ void blast()
 
 stralloc recip = {0};
 
-void smtp()
+void mail_without_auth()
 {
-  unsigned long code;
-  int flagbother;
-  int i;
- 
-  if (smtpcode() != 220) quit("ZConnected to "," but greeting failed");
- 
-  substdio_puts(&smtpto,"HELO ");
-  substdio_put(&smtpto,helohost.s,helohost.len);
-  substdio_puts(&smtpto,"\r\n");
-  substdio_flush(&smtpto);
-  if (smtpcode() != 250) quit("ZConnected to "," but my name was rejected");
- 
   substdio_puts(&smtpto,"MAIL FROM:<");
   substdio_put(&smtpto,sender.s,sender.len);
   substdio_puts(&smtpto,">\r\n");
   substdio_flush(&smtpto);
+}
+
+void smtp()
+{
+  unsigned long code;
+  int flagbother;
+  int i, j;
+ 
+  if (smtpcode() != 220) quit("ZConnected to "," but greeting failed");
+
+  substdio_puts(&smtpto,"EHLO ");
+  substdio_put(&smtpto,helohost.s,helohost.len);
+  substdio_puts(&smtpto,"\r\n");
+  substdio_flush(&smtpto);
+  if (smtpcode() != 250) {
+    substdio_puts(&smtpto,"HELO ");
+    substdio_put(&smtpto,helohost.s,helohost.len);
+    substdio_puts(&smtpto,"\r\n");
+    substdio_flush(&smtpto);
+    if (smtpcode() != 250) quit("ZConnected to "," but my name was rejected");
+  }
+  i = 0;
+  if (auth_smtp_user.len && auth_smtp_pass.len)  {
+    while((i += str_chr(smtptext.s+i,'\n') + 1) &&
+	  (i+8 < smtptext.len) &&
+	  str_diffn(smtptext.s+i+4,"AUTH",4));
+    if (((i+9 < smtptext.len) &&
+	 (str_diffn(smtptext.s+i+9," ",1) ||
+	  str_diffn(smtptext.s+i+9,"=",1))) &&
+	( i += str_chr(smtptext.s+i,'L') + 1 ) &&
+	str_diffn(smtptext.s+i+1,"OGIN",4)) {
+
+      if (b64encode(&auth_smtp_user,&auth_b64_user)) quit("ZConnected to "," but unable to base64encode user");
+      if (b64encode(&auth_smtp_pass,&auth_b64_pass)) quit("ZConnected to "," but unable to base64encode pass");
+
+      substdio_puts(&smtpto,"AUTH LOGIN\r\n");
+      substdio_flush(&smtpto);
+      if (smtpcode() != 334) quit("ZConnected to "," but authentication was rejected (AUTH LOGIN)");
+      substdio_put(&smtpto,auth_b64_user.s,auth_b64_user.len);
+      substdio_puts(&smtpto,"\r\n");
+      substdio_flush(&smtpto);
+      if (smtpcode() != 334) quit("ZConnected to "," but authentication was rejected (username)");
+      substdio_put(&smtpto,auth_b64_pass.s,auth_b64_pass.len);
+      substdio_puts(&smtpto,"\r\n");
+      substdio_flush(&smtpto);
+      if (smtpcode() != 235) quit("ZConnected to "," but authentication was rejected (password)");
+      substdio_puts(&smtpto,"MAIL FROM:<");
+      substdio_put(&smtpto,sender.s,sender.len);
+      substdio_puts(&smtpto,"> AUTH=<");
+      substdio_put(&smtpto,sender.s,sender.len);
+      substdio_puts(&smtpto,">\r\n");
+      substdio_flush(&smtpto);
+    } else {
+      no_supported_auth();
+      mail_without_auth();
+    }
+  } else {
+    auth_user_not_set();
+    mail_without_auth();
+  }
   code = smtpcode();
   if (code >= 500) quit("DConnected to "," but sender was rejected");
   if (code >= 400) quit("ZConnected to "," but sender was rejected");
@@ -331,7 +394,7 @@ int argc;
 char **argv;
 {
   static ipalloc ip = {0};
-  int i;
+  int i,j;
   unsigned long random;
   char **recips;
   unsigned long prefme;
@@ -347,6 +410,9 @@ char **argv;
  
   if (!stralloc_copys(&host,argv[1])) temp_nomem();
  
+  if (!stralloc_copys(&auth_smtp_user,"")) temp_nomem();
+  if (!stralloc_copys(&auth_smtp_pass,"")) temp_nomem();
+
   relayhost = 0;
   for (i = 0;i <= host.len;++i)
     if ((i == 0) || (i == host.len) || (host.s[i] == '.'))
@@ -355,6 +421,16 @@ char **argv;
   if (relayhost && !*relayhost) relayhost = 0;
  
   if (relayhost) {
+    i = str_chr(relayhost,' ');
+    if (relayhost[i]) {
+      j = str_chr(relayhost + i + 1,' ');
+      if (relayhost[j]) {
+	relayhost[i] = 0;
+	relayhost[i + j + 1] = 0;
+	if (!stralloc_copys(&auth_smtp_user,relayhost + i + 1)) temp_nomem();
+	if (!stralloc_copys(&auth_smtp_pass,relayhost + i + j + 2)) temp_nomem();
+      }
+    }
     i = str_chr(relayhost,':');
     if (relayhost[i]) {
       scan_ulong(relayhost + i + 1,&port);
