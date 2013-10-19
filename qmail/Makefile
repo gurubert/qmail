@@ -136,6 +136,10 @@ auto_usera.o: \
 compile auto_usera.c
 	./compile auto_usera.c
 
+base64.o: \
+compile base64.c base64.h stralloc.h substdio.h str.h
+	./compile base64.c
+
 binm1: \
 binm1.sh conf-qmail
 	cat binm1.sh \

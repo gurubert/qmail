@@ -251,6 +251,7 @@ qmail-qmtpd.o
 rcpthosts.o
 qmail-qmtpd
 qmail-smtpd.o
+base64.o
 qmail-smtpd
 sendmail.o
 sendmail
