@@ -1,1 +1,6 @@
-This branch contains the vanilla qmail-1.03 sources
+This branch contains a memory patch to ipme
+
+Read at http://www.mail-archive.com/qmail@id.wustl.edu/msg20935.html
+This patch increases the size of the memory buffer that qmail uses when
+querying the system for a list of all local IP addresses. This mailing list
+message describes the problem and includes the patch file.
