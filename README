@@ -1,1 +1,19 @@
-This branch contains the vanilla qmail-1.03 sources
+This branch contains the qmail-1.03-fastremote-3 patch
+
+While sending individual messages with qmail consumes very little CPU,
+sending multiple large messages in parallel can effectively DoS a sender
+due to inefficiencies in qmail-remote's "blast" function.  In its
+original form, this function scans the message one byte at a time to
+escape leading periods and newlines, as required by SMTP.
+
+This patch modifies blast to scan the message in larger chunks.  I have
+benchmarked before and after, and the change reduced the CPU time
+consumed by qmail-remote by a factor of 10.
+
+The original version of this patch had two bugs that would corrupt data
+for any message larger than 4kB.
+--
+Bruce Guenter <bruce@untroubled.org> http://untroubled.org/
+===============================================================================
+
+Original patch: http://untroubled.org/qmail/qmail-1.03-fastremote-3.patch
