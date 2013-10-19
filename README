@@ -1,1 +1,9 @@
-This branch contains the vanilla qmail-1.03 sources
+This branch contains the sendmail -f patch
+
+Fix qmail's sendmail emulation flag -f
+David Phillips noticed that qmail's sendmail emulation doesn't correctly
+support the -f flag as it should. Scripts may rely on this flag (it sets
+the envelope sender address - the address where delivery problems are sent
+to unless the message also contains an Errors-To: message header).
+
+Original patch: http://www.memoryhole.net/qmail/sendmail-flagf.patch
