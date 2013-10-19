@@ -1,5 +1,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "alloc.h"
 #include "sig.h"
 #include "wait.h"
 #include "substdio.h"
@@ -175,7 +176,7 @@ void getcmd()
 
 char inbuf[128];
 
-void main(argc,argv)
+int main(argc,argv)
 int argc;
 char **argv;
 {

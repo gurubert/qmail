@@ -1,0 +1,13 @@
+#!/bin/sh
+QMAILDUID=`id -u qmaild`
+QMAILDGID=`id -g qmaild`
+HOSTNAME=`hostname`
+export SMTPAUTH="!"
+export UCSPITLS=""
+. /var/qmail/ssl/env
+exec softlimit -m 30000000 \
+        sslserver -sevn -Rp -l $HOSTNAME -c 20 \
+                -x /var/qmail/etc/rules.smtpd.cdb \
+                -u $QMAILDUID -g $QMAILDGID \
+		0 submission \
+                /var/qmail/bin/qmail-smtpd /usr/local/bin/cmdcheckpw true 2>&1

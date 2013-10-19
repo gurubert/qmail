@@ -136,7 +136,7 @@ char *post;
   }
 }
 
-void main()
+int main()
 {
   DIR *dir;
   direntry *d;
@@ -214,14 +214,52 @@ void main()
     _exit(111);
   }
 
-  do_lst("badmailfrom","Any MAIL FROM is allowed.",""," not accepted in MAIL FROM.");
+  do_lst("authsenders","No authenticated SMTP senders.","Authenicated SMTP senders: ","");
+  do_lst("badhelo","Any HELO/EHLO greeting is allowed.",""," not accepted in HELO/EHLO; exception token is '!'.");
+  do_lst("badmailfrom","Any MAIL FROM is allowed.",""," are rejected or treated special in MAIL FROM depending on tokens: '!', '?', '=', '~', '+'.");
+  do_lst("badloadertypes","Any loader types are accepted.",""," not accepted as loader type.");
+  /* XXX: check badloadertypes.cdb contents */
+   substdio_puts(subfdout,"\nbadloadertypes.cdb: ");
+  if (stat("badloadertypes",&stmrh) == -1)
+    if (stat("badloadertypes.cdb",&stmrhcdb) == -1)
+      substdio_puts(subfdout,"(Default.) No effect.\n");
+    else
+      substdio_puts(subfdout,"Oops! badloadertypes.cdb exists but badloadertypes doesn't.\n");
+  else
+    if (stat("badloadertypes.cdb",&stmrhcdb) == -1)
+      substdio_puts(subfdout,"Oops! badloadertypes exists but badloadertypes.cdb doesn't.\n");
+    else
+      if (stmrh.st_mtime > stmrhcdb.st_mtime)
+        substdio_puts(subfdout,"Oops! badloadertypes.cdb is older than badloadertypes.\n");
+      else
+        substdio_puts(subfdout,"Modified recently enough; hopefully up to date.\n");
+  do_lst("badmimetypes","Any MIME types are accepted.",""," not accepted as MIME type.");
+  /* XXX: check badmimetypes.cdb contents */
+   substdio_puts(subfdout,"\nbadmimetypes.cdb: ");
+  if (stat("badmimetypes",&stmrh) == -1)
+    if (stat("badmimetypes.cdb",&stmrhcdb) == -1)
+      substdio_puts(subfdout,"(Default.) No effect.\n");
+    else
+      substdio_puts(subfdout,"Oops! badmimetypes.cdb exists but badmimetypes doesn't.\n");
+  else
+    if (stat("badmimetypes.cdb",&stmrhcdb) == -1)
+      substdio_puts(subfdout,"Oops! badmimetypes exists but badmimetypes.cdb doesn't.\n");
+    else
+      if (stmrh.st_mtime > stmrhcdb.st_mtime)
+        substdio_puts(subfdout,"Oops! badmimetypes.cdb is older than badmimetypes.\n");
+      else
+        substdio_puts(subfdout,"Modified recently enough; hopefully up to date.\n");
+  do_lst("badrcptto","Any RCPT TO is allowed.",""," not accepted in RCPT TO.");
   do_str("bouncefrom",0,"MAILER-DAEMON","Bounce user name is ");
   do_str("bouncehost",1,"bouncehost","Bounce host name is ");
+  do_int("bouncemaxbytes","0","Bounce size limit is "," bytes");
   do_int("concurrencylocal","10","Local concurrency is ","");
   do_int("concurrencyremote","20","Remote concurrency is ","");
   do_int("databytes","0","SMTP DATA limit is "," bytes");
   do_str("defaultdomain",1,"defaultdomain","Default domain name is ");
   do_str("defaulthost",1,"defaulthost","Default host name is ");
+  do_lst("domaincerts","No domain certs defined.","Domain certs: ","");
+  do_lst("domainips","No domain ip mappings defined.","Map from sender domain part to local ip: ","");
   do_str("doublebouncehost",1,"doublebouncehost","2B recipient host: ");
   do_str("doublebounceto",0,"postmaster","2B recipient user: ");
   do_str("envnoathost",1,"envnoathost","Presumed domain name is ");
@@ -230,6 +268,24 @@ void main()
   do_str("localiphost",1,"localiphost","Local IP address becomes ");
   do_lst("locals","Messages for me are delivered locally.","Messages for "," are delivered locally.");
   do_str("me",0,"undefined! Uh-oh","My name is ");
+
+  do_lst("mailfromrules","Any envelope sender are accepted.",""," (MAV rule).");
+  /* XXX: check mailfromrules.cdb contents */
+  substdio_puts(subfdout,"\nmailfromrules.cdb: ");
+  if (stat("mailfromrules",&stmrh) == -1)
+    if (stat("mailfromrules.cdb",&stmrhcdb) == -1)
+      substdio_puts(subfdout,"(Default.) No effect.\n");
+    else
+      substdio_puts(subfdout,"Oops! mailfromrules.cdb exists but mailfromrules doesn't.\n");
+  else
+    if (stat("mailfromrules.cdb",&stmrhcdb) == -1)
+      substdio_puts(subfdout,"Oops! mailfromrules exists but mailfromrules.cdb doesn't.\n");
+    else
+      if (stmrh.st_mtime > stmrhcdb.st_mtime)
+        substdio_puts(subfdout,"Oops! mailfromrules.cdb is older than mailfromrules.\n");
+      else
+        substdio_puts(subfdout,"Modified recently enough; hopefully up to date.\n");
+
   do_lst("percenthack","The percent hack is not allowed.","The percent hack is allowed for user%host@",".");
   do_str("plusdomain",1,"plusdomain","Plus domain name is ");
   do_lst("qmqpservers","No QMQP servers.","QMQP server: ",".");
@@ -254,27 +310,37 @@ void main()
         substdio_puts(subfdout,"Oops! morercpthosts.cdb is older than morercpthosts.\n");
       else
         substdio_puts(subfdout,"Modified recently enough; hopefully up to date.\n");
-
+  do_lst("recipients","SMTP clients may send messages to any recipient.","SMTP clients may send messages to local recipients listed in ",".");
   do_str("smtpgreeting",1,"smtpgreeting","SMTP greeting: 220 ");
+  do_lst("qmtproutes","No additional QMTP routes.","QMTP route: ","");
   do_lst("smtproutes","No artificial SMTP routes.","SMTP route: ","");
   do_int("timeoutconnect","60","SMTP client connection timeout is "," seconds");
   do_int("timeoutremote","1200","SMTP client data timeout is "," seconds");
   do_int("timeoutsmtpd","1200","SMTP server data timeout is "," seconds");
+  do_lst("tlsdestinations","No TLS destinations defined.","TLS destination: ","");
   do_lst("virtualdomains","No virtual domains.","Virtual domain: ","");
 
   while (d = readdir(dir)) {
     if (str_equal(d->d_name,".")) continue;
     if (str_equal(d->d_name,"..")) continue;
-    if (str_equal(d->d_name,"bouncefrom")) continue;
-    if (str_equal(d->d_name,"bouncehost")) continue;
+    if (str_equal(d->d_name,"authsenders")) continue;
+    if (str_equal(d->d_name,"badhelo")) continue;
+    if (str_equal(d->d_name,"badrcptto")) continue;
     if (str_equal(d->d_name,"badmailfrom")) continue;
+    if (str_equal(d->d_name,"badloadertypes")) continue;
+    if (str_equal(d->d_name,"badloadertypes.cdb")) continue;
+    if (str_equal(d->d_name,"badmimetypes")) continue;
+    if (str_equal(d->d_name,"badmimetypes.cdb")) continue;
     if (str_equal(d->d_name,"bouncefrom")) continue;
     if (str_equal(d->d_name,"bouncehost")) continue;
+    if (str_equal(d->d_name,"bouncemaxbytes")) continue;
     if (str_equal(d->d_name,"concurrencylocal")) continue;
     if (str_equal(d->d_name,"concurrencyremote")) continue;
     if (str_equal(d->d_name,"databytes")) continue;
     if (str_equal(d->d_name,"defaultdomain")) continue;
     if (str_equal(d->d_name,"defaulthost")) continue;
+    if (str_equal(d->d_name,"domainips")) continue;
+    if (str_equal(d->d_name,"domaincerts")) continue;
     if (str_equal(d->d_name,"doublebouncehost")) continue;
     if (str_equal(d->d_name,"doublebounceto")) continue;
     if (str_equal(d->d_name,"envnoathost")) continue;
@@ -283,6 +349,8 @@ void main()
     if (str_equal(d->d_name,"localiphost")) continue;
     if (str_equal(d->d_name,"locals")) continue;
     if (str_equal(d->d_name,"me")) continue;
+    if (str_equal(d->d_name,"mailfromrules")) continue;
+    if (str_equal(d->d_name,"mailfromrules.cdb")) continue;
     if (str_equal(d->d_name,"morercpthosts")) continue;
     if (str_equal(d->d_name,"morercpthosts.cdb")) continue;
     if (str_equal(d->d_name,"percenthack")) continue;
@@ -290,11 +358,14 @@ void main()
     if (str_equal(d->d_name,"qmqpservers")) continue;
     if (str_equal(d->d_name,"queuelifetime")) continue;
     if (str_equal(d->d_name,"rcpthosts")) continue;
+    if (str_equal(d->d_name,"recipients")) continue;
     if (str_equal(d->d_name,"smtpgreeting")) continue;
+    if (str_equal(d->d_name,"qmtproutes")) continue;
     if (str_equal(d->d_name,"smtproutes")) continue;
     if (str_equal(d->d_name,"timeoutconnect")) continue;
     if (str_equal(d->d_name,"timeoutremote")) continue;
     if (str_equal(d->d_name,"timeoutsmtpd")) continue;
+    if (str_equal(d->d_name,"tlsdestinations")) continue;
     if (str_equal(d->d_name,"virtualdomains")) continue;
     substdio_puts(subfdout,"\n");
     substdio_puts(subfdout,d->d_name);

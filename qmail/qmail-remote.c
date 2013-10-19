@@ -1,4 +1,5 @@
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -14,6 +15,7 @@
 #include "dns.h"
 #include "alloc.h"
 #include "quote.h"
+#include "fmt.h"
 #include "ip.h"
 #include "ipalloc.h"
 #include "ipme.h"
@@ -28,11 +30,33 @@
 #include "timeoutconn.h"
 #include "timeoutread.h"
 #include "timeoutwrite.h"
+#include "base64.h"
+#include "ucspitls.h" 
+#include "tls_remote.h"
 
 #define HUGESMTPTEXT 5000
-
-#define PORT_SMTP 25 /* silly rabbit, /etc/services is for users */
+#define PORT_SMTP 25  /* silly rabbit, /etc/services is for users */
+#define PORT_QMTP 209 
 unsigned long port = PORT_SMTP;
+
+#define PORT_SMTPS 465
+#define VERIFYDEPTH 1
+
+int flagtls = 0;	/* -1 = not ; 0 = no, default ; 1 = TLS ; 2 = TLS + Cert ; 3 = TLS + verify ; 4 = TLS + verify + valid; +10 = SMTPS */
+int flagtlsdomain = 0;	/* 0 = no ; 1 = yes ; 2 = cert */
+
+stralloc cafile = {0};
+stralloc cadir = {0};
+stralloc certfile = {0};
+stralloc keyfile = {0};
+stralloc keypwd = {0};
+stralloc ciphers = {0};
+stralloc tlsdest = {0};
+stralloc tlsport = {0};
+stralloc tlsverf = {0};
+
+SSL *ssl;
+SSL_CTX *ctx; 
 
 GEN_ALLOC_typedef(saa,stralloc,sa,len,a)
 GEN_ALLOC_readyplus(saa,stralloc,sa,len,a,i,n,x,10,saa_readyplus)
@@ -43,6 +67,30 @@ stralloc routes = {0};
 struct constmap maproutes;
 stralloc host = {0};
 stralloc sender = {0};
+stralloc bounce = {0};
+stralloc canonhost = {0};
+stralloc canonbox = {0};
+stralloc senddomain = {0};
+
+/* Outgoing IP patch: Ideas taken from Alberto Brealey Guzmain (tx) */ 
+
+stralloc domainips = {0};
+struct constmap mapdomainips;
+char domainip[4];
+
+int flagauth = 0;		/* login = 1; plain = 2; crammd5 = 3 */
+stralloc authsenders = {0};
+struct constmap mapauthsenders;
+stralloc user = {0};
+stralloc pass = {0};
+stralloc auth = {0};
+stralloc chal  = {0};
+stralloc slop  = {0};
+stralloc plain = {0};
+char *authsender;
+
+stralloc qmtproutes = {0};
+struct constmap mapqmtproutes;
 
 saa reciplist = {0};
 
@@ -50,41 +98,81 @@ struct ip_address partner;
 
 void out(s) char *s; { if (substdio_puts(subfdoutsmall,s) == -1) _exit(0); }
 void zero() { if (substdio_put(subfdoutsmall,"\0",1) == -1) _exit(0); }
-void zerodie() { zero(); substdio_flush(subfdoutsmall); _exit(0); }
+void zerodie() {
+  zero();
+  substdio_flush(subfdoutsmall);
+  if (ssl) tls_exit(ssl);
+  _exit(0);
+}
+
 void outsafe(sa) stralloc *sa; { int i; char ch;
 for (i = 0;i < sa->len;++i) {
 ch = sa->s[i]; if (ch < 33) ch = '?'; if (ch > 126) ch = '?';
 if (substdio_put(subfdoutsmall,&ch,1) == -1) _exit(0); } }
 
+void temp_noip() { out("Zinvalid ipaddr in control/domainips (#4.3.0)\n"); zerodie(); }
 void temp_nomem() { out("ZOut of memory. (#4.3.0)\n"); zerodie(); }
 void temp_oserr() { out("Z\
 System resources temporarily unavailable. (#4.3.0)\n"); zerodie(); }
 void temp_noconn() { out("Z\
 Sorry, I wasn't able to establish an SMTP connection. (#4.4.1)\n"); zerodie(); }
+void temp_qmtpnoc() { out("Z\
+Sorry, I wasn't able to establish an QMTP connection. (#4.4.1)\n"); zerodie(); }
 void temp_read() { out("ZUnable to read message. (#4.3.0)\n"); zerodie(); }
 void temp_dnscanon() { out("Z\
-CNAME lookup failed temporarily. (#4.4.3)\n"); zerodie(); }
+CNAME lookup failed temporarily for: "); outsafe(&canonhost); out(". (#4.4.3)\n"); zerodie(); }
 void temp_dns() { out("Z\
-Sorry, I couldn't find any host by that name. (#4.1.2)\n"); zerodie(); }
+Sorry, I couldn't find any host named: "); outsafe(&host); out(". (#4.1.2)\n"); zerodie(); }
 void temp_chdir() { out("Z\
 Unable to switch to home directory. (#4.3.0)\n"); zerodie(); }
 void temp_control() { out("Z\
 Unable to read control files. (#4.3.0)\n"); zerodie(); }
 void perm_partialline() { out("D\
 SMTP cannot transfer messages with partial final lines. (#5.6.2)\n"); zerodie(); }
+void temp_proto() { out("Z\
+recipient did not talk proper QMTP (#4.3.0)\n"); zerodie(); }
 void perm_usage() { out("D\
 I (qmail-remote) was invoked improperly. (#5.3.5)\n"); zerodie(); }
 void perm_dns() { out("D\
-Sorry, I couldn't find any host named ");
-outsafe(&host);
-out(". (#5.1.2)\n"); zerodie(); }
+Sorry, I couldn't find any host named "); outsafe(&host); out(". (#5.1.2)\n"); zerodie(); }
 void perm_nomx() { out("D\
-Sorry, I couldn't find a mail exchanger or IP address. (#5.4.4)\n");
-zerodie(); }
+Sorry, I couldn't find a mail exchanger or IP address. (#5.4.4)\n"); zerodie(); }
 void perm_ambigmx() { out("D\
 Sorry. Although I'm listed as a best-preference MX or A for that host,\n\
 it isn't in my control/locals file, so I don't treat it as local. (#5.4.6)\n");
 zerodie(); }
+
+void temp_tlscert() { out("Z\
+Can't load X.509 certificate: "); outsafe(&certfile); out(". (#4.4.1)\n"); zerodie(); }
+void temp_tlskey() { out("Z\
+Can't load X.509 private key: "); outsafe(&keyfile); out(". (#4.4.1)\n"); zerodie(); }
+void temp_tlschk() { out("Z\
+Keyfile does not match X.509 certificate: "); outsafe(&keypwd); out(". (#4.4.1)\n"); zerodie(); }
+void temp_tlsctx() { out("Z\
+I wasn't able to create TLS context. (#4.4.1)\n"); zerodie(); }
+void temp_tlscipher() { out("Z\
+I wasn't able to process the TLS ciphers: "); outsafe(&ciphers); out (" (#4.4.1)\n"); zerodie(); }
+void temp_tlsca() { out("Z\
+I wasn't able to set up CAFILE: "); outsafe(&cafile); out(" or CADIR: "); 
+outsafe(&cadir); out(" for TLS. (#4.4.1)\n"); zerodie(); }
+void temp_tlspeercert() { out("Z\
+Unable to obtain X.500 certificate from: "); outsafe(&host); out(". (#4.4.1)\n"); zerodie(); }
+void temp_tlspeervalid() { out("Z\
+Unable to validate X.500 certificate Subject for: "); outsafe(&host); out(". (#4.4.1)\n"); zerodie(); }
+void temp_tlspeerverify() { out("Z\
+Unable to verify X.500 certificate from: "); outsafe(&host); out(". (#4.4.1)\n"); zerodie(); }
+void temp_tlscon() { out("Z\
+I wasn't able to establish a TLS connection with: "); outsafe(&host); out(". (#4.4.1)\n"); zerodie(); }
+void temp_tlserr() { out("Z\
+Unknown TLS error for host: "); outsafe(&host); out(". (#4.4.1)\n"); zerodie(); }
+void temp_tlsexit() { out("Z\
+I wasn't able to gracefully close the TLS connection with: "); outsafe(&host); out(". (#4.4.1)\n"); zerodie(); }
+
+void err_authprot() {
+  out("Kno supported AUTH method found, continuing without authentication.\n");
+  zero();
+  substdio_flush(subfdoutsmall);
+}
 
 void outhost()
 {
@@ -110,6 +198,10 @@ int timeout = 1200;
 int saferead(fd,buf,len) int fd; char *buf; int len;
 {
   int r;
+  if (ssl) {
+    r = tls_timeoutread(timeout,smtpfd,smtpfd,ssl,buf,len);
+    if (r < 0) temp_tlserr();
+  } else
   r = timeoutread(timeout,smtpfd,buf,len);
   if (r <= 0) dropped();
   return r;
@@ -117,14 +209,19 @@ int saferead(fd,buf,len) int fd; char *buf; int len;
 int safewrite(fd,buf,len) int fd; char *buf; int len;
 {
   int r;
+  if (ssl) {
+    r = tls_timeoutwrite(timeout,smtpfd,smtpfd,ssl,buf,len);
+    if (r < 0) temp_tlserr();
+  } else
   r = timeoutwrite(timeout,smtpfd,buf,len);
   if (r <= 0) dropped();
   return r;
 }
 
-char inbuf[1024];
+
+char inbuf[1450];
 substdio ssin = SUBSTDIO_FDBUF(read,0,inbuf,sizeof inbuf);
-char smtptobuf[1024];
+char smtptobuf[1450];
 substdio smtpto = SUBSTDIO_FDBUF(safewrite,-1,smtptobuf,sizeof smtptobuf);
 char smtpfrombuf[128];
 substdio smtpfrom = SUBSTDIO_FDBUF(saferead,-1,smtpfrombuf,sizeof smtpfrombuf);
@@ -179,7 +276,6 @@ void quit(prepend,append)
 char *prepend;
 char *append;
 {
-  substdio_putsflush(&smtpto,"QUIT\r\n");
   /* waiting for remote side is just too ridiculous */
   out(prepend);
   outhost();
@@ -192,23 +288,38 @@ char *append;
 void blast()
 {
   int r;
-  char ch;
+  int i;
+  int o;
+  char in[4096];
+  char out[4096*2+1];
+  int sol;
 
-  for (;;) {
-    r = substdio_get(&ssin,&ch,1);
+  for (sol = 1;;) {
+    r = substdio_get(&ssin,in,sizeof in);
     if (r == 0) break;
     if (r == -1) temp_read();
-    if (ch == '.')
-      substdio_put(&smtpto,".",1);
-    while (ch != '\n') {
-      substdio_put(&smtpto,&ch,1);
-      r = substdio_get(&ssin,&ch,1);
-      if (r == 0) perm_partialline();
-      if (r == -1) temp_read();
+
+    for (i = o = 0; i < r; ) {
+      if (sol && in[i] == '.') {
+	out[o++] = '.';
+	out[o++] = in[i++];
+      }
+      sol = 0;
+      while (i < r) {
+	if (in[i] == '\n') {
+	  sol = 1;
+	  ++i;
+	  out[o++] = '\r';
+	  out[o++] = '\n';
+	  break;
+	}
+	out[o++] = in[i++];
+      }
     }
-    substdio_put(&smtpto,"\r\n",2);
+    substdio_put(&smtpto,out,o);
   }
  
+  if (!sol) perm_partialline();
   flagcritical = 1;
   substdio_put(&smtpto,".\r\n",3);
   substdio_flush(&smtpto);
@@ -216,27 +327,307 @@ void blast()
 
 stralloc recip = {0};
 
-void smtp()
+void mailfrom()
 {
-  unsigned long code;
-  int flagbother;
-  int i;
- 
-  if (smtpcode() != 220) quit("ZConnected to "," but greeting failed");
- 
-  substdio_puts(&smtpto,"HELO ");
-  substdio_put(&smtpto,helohost.s,helohost.len);
-  substdio_puts(&smtpto,"\r\n");
-  substdio_flush(&smtpto);
-  if (smtpcode() != 250) quit("ZConnected to "," but my name was rejected");
- 
   substdio_puts(&smtpto,"MAIL FROM:<");
   substdio_put(&smtpto,sender.s,sender.len);
   substdio_puts(&smtpto,">\r\n");
   substdio_flush(&smtpto);
+}
+
+/* this file is too long -------------------------------------- client TLS */
+
+stralloc domaincerts = {0};
+struct constmap mapdomaincerts;
+stralloc tlsdestinations = {0};
+struct constmap maptlsdestinations;
+
+char *partner_fqdn = 0;
+char *tlsdestinfo = 0;
+char *tlsdomaininfo = 0;
+unsigned long verifydepth = VERIFYDEPTH;
+
+void tls_init()
+{
+/* Client CTX */
+
+  ctx = ssl_client();
+  ssl_errstr();
+  if (!ctx) temp_tlsctx();
+
+/* Fetch CA infos for dest */
+
+  if (cafile.len || cadir.len) 
+    if (!ssl_ca(ctx,cafile.s,cadir.s,(int) verifydepth)) temp_tlsca();
+
+  if (ciphers.len)
+    if (!ssl_ciphers(ctx,ciphers.s)) temp_tlscipher();
+
+/* Prepare for Certificate Request */
+
+  if (flagtlsdomain == 2) {
+    switch(tls_certkey(ctx,certfile.s,keyfile.s,keypwd.s)) {
+      case  0: break;
+      case -1: temp_tlscert();
+      case -2: temp_tlskey();
+      case -3: temp_tlschk();
+    }
+  }
+
+/* Set SSL Context */
+
+  ssl = ssl_new(ctx,smtpfd);
+  if (!ssl) temp_tlsctx();
+
+/* Setup SSL FDs */
+ 
+  if(!tls_conn(ssl,smtpfd)) temp_tlscon(); 
+
+/* Go on in none-blocking mode */
+
+  if (tls_timeoutconn(timeout,smtpfd,smtpfd,ssl) <= 0)
+    temp_tlserr();
+}
+
+int starttls_peer()
+{
+  int i = 0;
+
+  while ( (i += str_chr(smtptext.s+i,'\n') + 1) && 
+          (i+8 < smtptext.len) ) {
+          if (!str_diffn(smtptext.s+i+4,"STARTTLS",8)) return 1; }
+
+  return 0;
+}
+
+void tls_peercheck()
+{
+  switch(tls_checkpeer(ssl,host.s,host.len,flagtls)) {
+    case -1: temp_tlspeercert();
+    case -2: temp_tlspeerverify();
+    case -3: temp_tlspeervalid();
+  }
+  flagtls = 100;
+}
+  
+/* this file is too long -------------------------------------- client auth */
+
+stralloc xuser = {0};
+
+int xtext(sa,s,len)
+stralloc *sa;
+char *s;
+int len;
+{
+  int i;
+
+  if(!stralloc_copys(sa,"")) temp_nomem();
+
+  for (i = 0; i < len; i++) {
+    if (s[i] == '=') {
+      if (!stralloc_cats(sa,"+3D")) temp_nomem();
+    } else if (s[i] == '+') {
+        if (!stralloc_cats(sa,"+2B")) temp_nomem();
+    } else if ((int) s[i] < 33 || (int) s[i] > 126) {
+        if (!stralloc_cats(sa,"+3F")) temp_nomem(); /* ok. not correct */
+    } else if (!stralloc_catb(sa,s+i,1)) {
+        temp_nomem();
+    }
+  }
+
+  return sa->len;
+}
+
+void mailfrom_xtext()
+{
+  if (!xtext(&xuser,user.s,user.len)) temp_nomem();
+  substdio_puts(&smtpto,"MAIL FROM:<");
+  substdio_put(&smtpto,sender.s,sender.len);
+  substdio_puts(&smtpto,"> AUTH=");
+  substdio_put(&smtpto,xuser.s,xuser.len);
+  substdio_puts(&smtpto,"\r\n");
+  substdio_flush(&smtpto);
+}
+  
+int mailfrom_plain()
+{
+  substdio_puts(&smtpto,"AUTH PLAIN\r\n");
+  substdio_flush(&smtpto);
+  if (smtpcode() != 334) quit("ZConnected to "," but authentication was rejected (AUTH PLAIN).");
+
+  if(!stralloc_cat(&plain,&sender)) temp_nomem(); /* Mail From: <authorize-id> */
+  if(!stralloc_0(&plain)) temp_nomem();
+  if(!stralloc_cat(&plain,&user)) temp_nomem(); /* user-id */
+  if(!stralloc_0(&plain)) temp_nomem();
+  if(!stralloc_cat(&plain,&pass)) temp_nomem(); /* password */
+  if (b64encode(&plain,&auth)) quit("ZConnected to "," but unable to base64encode (plain).");
+  substdio_put(&smtpto,auth.s,auth.len);
+  substdio_puts(&smtpto,"\r\n");
+  substdio_flush(&smtpto);
+  if (smtpcode() == 235) { mailfrom_xtext(); return 0; }
+  else if (smtpcode() == 534)  return -1;
+  else { quit("ZConnected to "," but authentication was rejected (plain)."); return 1; }
+ 
+  return 0;
+}
+
+int mailfrom_login()
+{
+  substdio_puts(&smtpto,"AUTH LOGIN\r\n");
+  substdio_flush(&smtpto);
+  if (smtpcode() != 334) quit("ZConnected to "," but authentication was rejected (AUTH LOGIN).");
+
+  if (!stralloc_copys(&auth,"")) temp_nomem();
+  if (b64encode(&user,&auth)) quit("ZConnected to "," but unable to base64encode user.");
+  substdio_put(&smtpto,auth.s,auth.len);
+  substdio_puts(&smtpto,"\r\n");
+  substdio_flush(&smtpto);
+  if (smtpcode() != 334) quit("ZConnected to "," but authentication was rejected (username).");
+
+  if (!stralloc_copys(&auth,"")) temp_nomem();
+  if (b64encode(&pass,&auth)) quit("ZConnected to "," but unable to base64encode pass.");
+  substdio_put(&smtpto,auth.s,auth.len);
+  substdio_puts(&smtpto,"\r\n");
+  substdio_flush(&smtpto);
+  if (smtpcode() == 235) { mailfrom_xtext(); return 0; }
+  else if (smtpcode() == 534)  return -1;
+  else { quit("ZConnected to "," but authentication was rejected (login)."); return 1; }
+ 
+  return 0;
+}
+
+int mailfrom_cram()
+{
+  int j;
+  unsigned char digest[16];
+  unsigned char digascii[33];
+  static char hextab[]="0123456789abcdef";
+
+  substdio_puts(&smtpto,"AUTH CRAM-MD5\r\n");
+  substdio_flush(&smtpto);
+  if (smtpcode() != 334) quit("ZConnected to "," but authentication was rejected (AUTH CRAM-MD5).");
+
+  if (str_chr(smtptext.s+4,' ')) {                      /* Challenge */
+    if(!stralloc_copys(&slop,"")) temp_nomem();
+    if (!stralloc_copyb(&slop,smtptext.s+4,smtptext.len-5)) temp_nomem();
+    if (b64decode(slop.s,slop.len,&chal)) quit("ZConnected to "," but unable to base64decode challenge.");
+  }
+
+  hmac_md5(chal.s,chal.len,pass.s,pass.len,digest);
+
+  for (j = 0;j < 16;j++)                                /* HEX => ASCII */
+  {
+    digascii[2*j] = hextab[digest[j] >> 4];
+    digascii[2*j+1] = hextab[digest[j] & 0xf];
+  }
+  digascii[32]=0;
+
+  slop.len = 0;
+  if (!stralloc_copys(&slop,"")) temp_nomem();
+  if (!stralloc_cat(&slop,&user)) temp_nomem();          /* user-id */
+  if (!stralloc_cats(&slop," ")) temp_nomem();
+  if (!stralloc_catb(&slop,digascii,32)) temp_nomem();   /* digest */
+
+  if (!stralloc_copys(&auth,"")) temp_nomem();
+  if (b64encode(&slop,&auth)) quit("ZConnected to "," but unable to base64encode username+digest.");
+  substdio_put(&smtpto,auth.s,auth.len);
+  substdio_puts(&smtpto,"\r\n");
+  substdio_flush(&smtpto);
+  if (smtpcode() == 235) { mailfrom_xtext(); return 0; }
+  else if (smtpcode() == 534)  return -1;
+  else { quit("ZConnected to "," but authentication was rejected (cram-md5)."); return 1; }
+ 
+  return 0;
+}
+
+void smtp_auth()
+{
+  int i, j;
+
+  for (i = 0; i + 8 < smtptext.len; i += str_chr(smtptext.s+i,'\n')+1)
+    if (!str_diffn(smtptext.s+i+4,"AUTH",4)) {
+      if (j = str_chr(smtptext.s+i+8,'C') > 0)          /* AUTH CRAM-MD5 */
+        if (case_starts(smtptext.s+i+8+j,"CRAM"))
+          if (mailfrom_cram() >= 0) return;
+
+      if (j = str_chr(smtptext.s+i+8,'L') > 0)          /* AUTH LOGIN */
+        if (case_starts(smtptext.s+i+8+j,"LOGIN"))
+          if (mailfrom_login() >= 0) return;
+
+      if (j = str_chr(smtptext.s+i+8,'P') > 0)          /* AUTH PLAIN */
+        if (case_starts(smtptext.s+i+8+j,"PLAIN"))
+          if (mailfrom_plain() >= 0) return;
+
+      err_authprot();
+      mailfrom();
+    }
+}
+
+/* this file is too long -------------------------------------- smtp client */
+
+unsigned long code;
+
+void smtp_greeting()
+{
+  substdio_puts(&smtpto,"EHLO ");
+  substdio_put(&smtpto,helohost.s,helohost.len);
+  substdio_puts(&smtpto,"\r\n");
+  substdio_flush(&smtpto);
+
+  if (smtpcode() != 250) {
+    substdio_puts(&smtpto,"HELO ");
+    substdio_put(&smtpto,helohost.s,helohost.len);
+    substdio_puts(&smtpto,"\r\n");
+    substdio_flush(&smtpto);
+    code = smtpcode();
+    authsender = 0;
+    if (code >= 500) quit("DConnected to "," but my name was rejected");
+    if (code != 250) quit("ZConnected to "," but my name was rejected");
+  }
+}
+
+void smtp_starttls()
+{
+  substdio_puts(&smtpto,"STARTTLS\r\n");
+  substdio_flush(&smtpto);
+  if (smtpcode() == 220) {
+    tls_init();
+    tls_peercheck();
+    smtp_greeting();
+  }
+  else {
+    flagtls = -2;
+    quit("ZConnected to "," but STARTTLS was rejected.");
+  }
+}
+
+void smtp()
+{
+  int flagbother;
+  int i;
+
+  if (flagtls > 10 && flagtls < 100) {          /* SMTPS */
+    tls_init();
+    tls_peercheck(); 
+  }
+
+  code = smtpcode();
+  if (code == 421) quit("ZConnected to "," but greylisted");
+  if (code != 220) quit("ZConnected to "," but greeting failed");
+
+  smtp_greeting();
+
+  if (flagtls > 0 && flagtls < 10)              /* STARTTLS */
+    if (starttls_peer()) smtp_starttls();
+
+  if (user.len && pass.len)			/* AUTH */
+    smtp_auth();
+  else 
+    mailfrom();
+
   code = smtpcode();
   if (code >= 500) quit("DConnected to "," but sender was rejected");
-  if (code >= 400) quit("ZConnected to "," but sender was rejected");
+  if (code >= 400) quit("ZConnected to "," but sender was greylisted");
  
   flagbother = 0;
   for (i = 0;i < reciplist.len;++i) {
@@ -263,6 +654,7 @@ void smtp()
   substdio_putsflush(&smtpto,"DATA\r\n");
   code = smtpcode();
   if (code >= 500) quit("D"," failed on DATA command");
+  if (code == 451) quit("Z"," message was greylisted");
   if (code >= 400) quit("Z"," failed on DATA command");
  
   blast();
@@ -270,11 +662,113 @@ void smtp()
   flagcritical = 0;
   if (code >= 500) quit("D"," failed after I sent the message");
   if (code >= 400) quit("Z"," failed after I sent the message");
-  quit("K"," accepted message");
+  if (flagtls == 100) quit("K"," TLS transmitted message accepted");
+  else quit("K"," accepted message");
 }
 
-stralloc canonhost = {0};
-stralloc canonbox = {0};
+/* this file is too long -------------------------------------- qmtp client */
+
+int qmtpsend = 0;
+
+void qmtp()
+{
+  struct stat st;
+  unsigned long len;
+  char *x;
+  int i;
+  int n;
+  unsigned char ch;
+  char num[FMT_ULONG];
+  int flagallok;
+
+  if (fstat(0,&st) == -1) quit("Z", " unable to fstat stdin");
+  len = st.st_size;
+
+  /* the following code was substantially taken from serialmail'ss serialqmtp.c */
+  substdio_put(&smtpto,num,fmt_ulong(num,len+1));
+  substdio_put(&smtpto,":\n",2);
+  while (len > 0) {
+    n = substdio_feed(&ssin);
+    if (n <= 0) _exit(32); /* wise guy again */
+    x = substdio_PEEK(&ssin);
+    substdio_put(&smtpto,x,n);
+    substdio_SEEK(&ssin,n);
+    len -= n;
+  }
+  substdio_put(&smtpto,",",1);
+
+  len = sender.len;
+  substdio_put(&smtpto,num,fmt_ulong(num,len));
+  substdio_put(&smtpto,":",1);
+  substdio_put(&smtpto,sender.s,sender.len);
+  substdio_put(&smtpto,",",1);
+
+  len = 0;
+  for (i = 0;i < reciplist.len;++i)
+    len += fmt_ulong(num,reciplist.sa[i].len) + 1 + reciplist.sa[i].len + 1;
+  substdio_put(&smtpto,num,fmt_ulong(num,len));
+  substdio_put(&smtpto,":",1);
+  for (i = 0;i < reciplist.len;++i) {
+    substdio_put(&smtpto,num,fmt_ulong(num,reciplist.sa[i].len));
+    substdio_put(&smtpto,":",1);
+    substdio_put(&smtpto,reciplist.sa[i].s,reciplist.sa[i].len);
+    substdio_put(&smtpto,",",1);
+  }
+  substdio_put(&smtpto,",",1);
+  substdio_flush(&smtpto);
+
+  flagallok = 1;
+
+  for (i = 0;i < reciplist.len;++i) {
+    len = 0;
+    for (;;) {
+      get(&ch);
+      if (ch == ':') break;
+      if (len > 200000000) temp_proto();
+      if (ch - '0' > 9) temp_proto();
+      len = 10 * len + (ch - '0');
+    }
+    if (!len) temp_proto();
+    get(&ch); --len;
+    if ((ch != 'Z') && (ch != 'D') && (ch != 'K')) temp_proto();
+
+    if (!stralloc_copyb(&smtptext,&ch,1)) temp_proto();
+    if (!stralloc_cats(&smtptext,"qmtp: ")) temp_nomem();
+
+    while (len > 0) {
+      get(&ch);
+      --len;
+    }
+
+    for (len = 0;len < smtptext.len;++len) {
+      ch = smtptext.s[len];
+      if ((ch < 32) || (ch > 126)) smtptext.s[len] = '?';
+    }
+    get(&ch);
+    if (ch != ',') temp_proto();
+    smtptext.s[smtptext.len-1] = '\n';
+
+    if (smtptext.s[0] == 'K') out("r");
+    else if (smtptext.s[0] == 'D') {
+      out("h");
+      flagallok = 0;
+    }
+    else { /* if (smtptext.s[0] == 'Z') */
+      out("s");
+      flagallok = 0;
+    }
+    if (substdio_put(subfdoutsmall,smtptext.s+1,smtptext.len-1) == -1) temp_qmtpnoc();
+    zero();
+  }
+  if (!flagallok) {
+    out("DGiving up on ");outhost();out("\n");
+  } else {
+    out("KAll received okay by ");outhost();out("\n");
+  }
+  zerodie();
+}
+
+/* this file is too long -------------------------------------- common */
 
 void addrmangle(saout,s,flagalias,flagcname)
 stralloc *saout; /* host has to be canonical, box has to be quoted */
@@ -324,48 +818,339 @@ void getcontrols()
     case 1:
       if (!constmap_init(&maproutes,routes.s,routes.len,1)) temp_nomem(); break;
   }
+  switch(control_readfile(&domainips,"control/domainips",0)) {
+    case -1:
+      temp_control();
+    case 0:
+      if (!constmap_init(&mapdomainips,"",0,1)) temp_nomem(); break;
+    case 1:
+      if (!constmap_init(&mapdomainips,domainips.s,domainips.len,1)) temp_nomem(); break;
+  }
+  switch(control_readfile(&authsenders,"control/authsenders",0)) {
+    case -1:
+       temp_control();
+    case 0:
+      if (!constmap_init(&mapauthsenders,"",0,1)) temp_nomem(); break;
+    case 1:
+      if (!constmap_init(&mapauthsenders,authsenders.s,authsenders.len,1)) temp_nomem(); break;
+  }
+  switch(control_readfile(&qmtproutes,"control/qmtproutes",0)) {
+    case -1:
+      temp_control();
+    case 0:
+      if (!constmap_init(&mapqmtproutes,"",0,1)) temp_nomem(); break;
+    case 1:
+      if (!constmap_init(&mapqmtproutes,qmtproutes.s,qmtproutes.len,1)) temp_nomem(); break;
+  }
+  switch(control_readfile(&domaincerts,"control/domaincerts",0)) {
+    case -1:
+      temp_control();
+    case 0:
+      if (!constmap_init(&mapdomaincerts,"",0,1)) temp_nomem(); break;
+    case 1:
+      if (!constmap_init(&mapdomaincerts,domaincerts.s,domaincerts.len,1)) temp_nomem(); break;
+  }
+  switch(control_readfile(&tlsdestinations,"control/tlsdestinations",0)) {
+    case -1:
+      temp_control();
+    case 0:
+      if (!constmap_init(&maptlsdestinations,"",0,1)) temp_nomem(); break;
+    case 1:
+      if (!constmap_init(&maptlsdestinations,tlsdestinations.s,tlsdestinations.len,1)) temp_nomem(); break;
+  }
 }
 
-void main(argc,argv)
+int main(argc,argv)
 int argc;
 char **argv;
 {
   static ipalloc ip = {0};
-  int i;
+  struct stat st;
+  int i, j, k, m;
   unsigned long random;
   char **recips;
   unsigned long prefme;
   int flagallaliases;
   int flagalias;
   char *relayhost;
- 
+  char *localip;
+   
   sig_pipeignore();
   if (argc < 4) perm_usage();
   if (chdir(auto_qmail) == -1) temp_chdir();
   getcontrols();
  
- 
   if (!stralloc_copys(&host,argv[1])) temp_nomem();
- 
+
+  authsender = 0;
   relayhost = 0;
-  for (i = 0;i <= host.len;++i)
-    if ((i == 0) || (i == host.len) || (host.s[i] == '.'))
-      if (relayhost = constmap(&maproutes,host.s + i,host.len - i))
+
+  addrmangle(&sender,argv[2],&flagalias,0);
+
+/* this file is too long -------------------------------------- set domain ip     */
+
+  localip = 0;
+  for (i = 0;i <= canonhost.len;++i)
+    if ((i == 0) || (i == canonhost.len) || (canonhost.s[i] == '.'))
+      if (localip = constmap(&mapdomainips,canonhost.s + i,canonhost.len - i))
+       break;
+  if (localip && !*localip) localip = 0;
+
+/* this file is too long -------------------------------------- authsender routes */
+
+  for (i = 0;i <= sender.len;++i)
+    if ((i == 0) || (i == sender.len) || (sender.s[i] == '.') || (sender.s[i] == '@'))
+      if (authsender = constmap(&mapauthsenders,sender.s + i,sender.len - i))
         break;
-  if (relayhost && !*relayhost) relayhost = 0;
- 
-  if (relayhost) {
-    i = str_chr(relayhost,':');
-    if (relayhost[i]) {
-      scan_ulong(relayhost + i + 1,&port);
-      relayhost[i] = 0;
+
+  if (authsender && !*authsender) authsender = 0;
+
+  if (authsender) {
+    i = str_chr(authsender,'|');
+    if (authsender[i]) {
+      j = str_chr(authsender + i + 1,'|');
+      if (authsender[j]) {
+        authsender[i] = 0;
+        authsender[i + j + 1] = 0;
+        if (!stralloc_copys(&user,"")) temp_nomem();
+        if (!stralloc_copys(&user,authsender + i + 1)) temp_nomem();
+        if (!stralloc_copys(&pass,"")) temp_nomem();
+        if (!stralloc_copys(&pass,authsender + i + j + 2)) temp_nomem();
+      }
     }
-    if (!stralloc_copys(&host,relayhost)) temp_nomem();
+    i = str_chr(authsender,':');
+    if (authsender[i]) {
+      scan_ulong(authsender + i + 1,&port);
+      authsender[i] = 0;
+    }
+    if (!stralloc_copys(&relayhost,authsender)) temp_nomem();
+    if (!stralloc_copys(&host,authsender)) temp_nomem();
+  }
+
+/* this file is too long -------------------------------------- standard routes */
+
+  if (!authsender) {
+    if (sender.len == 0) {                        /* bounce routes */
+      if (!stralloc_copys(&bounce,"!@")) temp_nomem();
+      if (relayhost = constmap(&mapqmtproutes,bounce.s,2)) {
+         qmtpsend = 1; port = PORT_QMTP;
+      } else
+         relayhost = constmap(&maproutes,bounce.s,2);
+    }
+
+    if (relayhost && !*relayhost) relayhost = 0;
+
+    if (!relayhost) {
+      for (i = 0;i <= host.len;++i) {		/* qmtproutes */
+        if ((i == 0) || (i == host.len) || (host.s[i] == '.'))
+          if (relayhost = constmap(&mapqmtproutes,host.s + i,host.len - i)) {
+            qmtpsend = 1; port = PORT_QMTP;
+            break;
+          }					/* default smtproutes */
+          else if (relayhost = constmap(&maproutes,host.s + i,host.len - i))
+            break;
+      }
+    }
+
+    if (relayhost && !*relayhost) relayhost = 0;
+
+    if (relayhost) {				/* default smtproutes -- authenticated */
+      i = str_chr(relayhost,'|');
+      if (relayhost[i]) {
+        j = str_chr(relayhost + i + 1,'|');
+        if (relayhost[j]) {
+          relayhost[i] = 0;
+          relayhost[i + j + 1] = 0;
+          if (!stralloc_copys(&user,"")) temp_nomem();
+          if (!stralloc_copys(&user,relayhost + i + 1)) temp_nomem();
+          if (!stralloc_copys(&pass,"")) temp_nomem();
+          if (!stralloc_copys(&pass,relayhost + i + j + 2)) temp_nomem();
+        }
+      }
+      i = str_chr(relayhost,':');
+      if (relayhost[i]) {
+        scan_ulong(relayhost + i + 1,&port);
+        relayhost[i] = 0;
+      }
+      if (!stralloc_copys(&host,relayhost)) temp_nomem();
+    }
   }
 
 
-  addrmangle(&sender,argv[2],&flagalias,0);
- 
+/* this file is too long -------------------------------------- TLS destinations */
+
+/* Case 1: Skip this destination domain for TLS destinations */
+
+  for (i = 0;i <= host.len;++i) {
+    if ((i == 0) || (i == host.len) || (host.s[i] == '.')) {
+      if (!stralloc_copys(&tlsdest,"!")) temp_nomem();
+      if (!stralloc_catb(&tlsdest,host.s + i,host.len - i)) temp_nomem();
+      if (!stralloc_0(&tlsdest)) temp_nomem();
+      if (tlsdestinfo = constmap(&maptlsdestinations,tlsdest.s,host.len - i + 1)) {
+        flagtls = -1;
+        break;
+      }
+    }
+  }
+  cafile.len = cadir.len = ciphers.len = k = 0;
+
+/* Case 2: Validate + Verify Cert for Peerhost -- or any */
+
+  if (!flagtls) {
+    if (!stralloc_copys(&tlsdest,"=")) temp_nomem();
+    if (!stralloc_catb(&tlsdest,host.s,host.len)) temp_nomem();
+    if (!stralloc_0(&tlsdest)) temp_nomem();
+    if (tlsdestinfo = constmap(&maptlsdestinations,tlsdest.s,tlsdest.len - 1)) 
+      flagtls = 4;
+  }
+
+  if (!flagtls) {
+    if (!stralloc_copys(&tlsdest,"=")) temp_nomem();
+    if (!stralloc_cats(&tlsdest,"*")) temp_nomem();
+    if (tlsdestinfo = constmap(&maptlsdestinations,tlsdest.s,2)) 
+      flagtls = 4;
+  }
+
+/* Case 3: Verify Cert for Hosts/Domains or Any */
+
+  if (!flagtls) {
+    for (i = 0;i <= host.len;++i) 
+      if ((i == 0) || (i == host.len) || (host.s[i] == '.')) {
+        if (!stralloc_copys(&tlsdest,"")) temp_nomem();
+        if (!stralloc_catb(&tlsdest,host.s + i,host.len - i)) temp_nomem();
+        if (!stralloc_0(&tlsdest)) temp_nomem();
+        if (tlsdestinfo = constmap(&maptlsdestinations,tlsdest.s,tlsdest.len - 1)) {
+          flagtls = 3;
+          break;
+        }
+      }
+  }
+
+/* Case 4: Anonymous TLS without Cert */
+
+  if (!flagtls) {
+    for (i = 0;i <= host.len;++i)
+      if ((i == 0) || (i == host.len) || (host.s[i] == '.')) {
+        if (!stralloc_copys(&tlsdest,"-")) temp_nomem();
+        if (!stralloc_catb(&tlsdest,host.s + i,host.len - i)) temp_nomem();
+        if (!stralloc_0(&tlsdest)) temp_nomem();
+        if (tlsdestinfo = constmap(&maptlsdestinations,tlsdest.s,tlsdest.len - 1)) {
+          flagtls = 1;
+          break;
+        }
+      }
+  }
+  if (!flagtls) {
+    if (!stralloc_copys(&tlsdest,"-")) temp_nomem();
+    if (!stralloc_cats(&tlsdest,"*")) temp_nomem();
+    if (tlsdestinfo = constmap(&maptlsdestinations,tlsdest.s,2))
+      flagtls = 1;
+  }
+
+/* Case 5: Just TLS for Any */
+
+  if (!flagtls) {
+    if (!stralloc_copys(&tlsdest,"*")) temp_nomem();
+    if (tlsdestinfo = constmap(&maptlsdestinations,tlsdest.s,1)) 
+      flagtls = 2;
+  }
+
+/* Fetch corresponding TLS infos for destination */
+
+  if (flagtls > 0) { 
+    i = str_chr(tlsdestinfo,'|');			/* ca file */
+    if (tlsdestinfo[i]) {
+      tlsdestinfo[i] = 0;
+      j = str_chr(tlsdestinfo+i+1,'|');			/* cipher */
+      if (tlsdestinfo[i+j+1] == '|') {
+        tlsdestinfo[i+j+1] = 0; 
+        m = str_chr(tlsdestinfo+i+j+2,'|');		/* cone domain */
+        if (tlsdestinfo[i+j+m+2] == '|') {
+          tlsdestinfo[i+j+m+2] = 0; 
+          if (str_diffn(tlsdestinfo[i+j+m+3],canonhost.s,canonhost.len)) flagtls = 0;
+        }
+        k = str_chr(tlsdestinfo+i+j+2,':');		/* verifydepth:port */
+	if (tlsdestinfo[i+j+k+2] == ':') {
+          tlsdestinfo[i+j+k+2] = 0;
+          if (k > 0) scan_ulong(tlsdestinfo+i+j+2,&verifydepth);
+          if (!stralloc_copys(&tlsport,tlsdestinfo+i+j+k+3)) temp_nomem();
+          scan_ulong(tlsdestinfo+i+j+k+3,&port);
+        }
+      }
+      if (!stralloc_copys(&ciphers,tlsdestinfo+i+1)) temp_nomem();
+    } 
+    if (!stralloc_copys(&cafile,tlsdestinfo)) temp_nomem();
+
+/* If cafile name ends with '/' consider it as cadir */
+
+    if (cafile.len) {
+      if (cafile.s[cafile.len] == '/') {
+        cafile.len = 0;
+        if (!stralloc_copys(&cadir,tlsdestinfo)) temp_nomem();
+        if (!stralloc_0(&cadir)) temp_nomem();
+      } else 
+        if (!stralloc_0(&cafile)) temp_nomem(); 
+    } 
+  }
+
+/* Fetch port if not already done and check for SMTPS */
+
+  if (flagtls > 0 && k == 0) {
+    cafile.len = 0;
+    j = str_rchr(tlsdestinfo,':');
+    if (tlsdestinfo[j] == ':') {
+      scan_ulong(tlsdestinfo+j+1,&port);
+      if (!stralloc_copys(&tlsport,tlsdestinfo+j+1)) temp_nomem();
+      if (!stralloc_0(&tlsport)) temp_nomem();
+    }
+  }
+  if (flagtls > 0 && port == PORT_SMTPS) flagtls = flagtls + 10;
+
+/* this file is too long -------------------------------------- Our Certs */
+
+  if (flagtls > 0) {
+    if (!stralloc_copy(&senddomain,&canonhost)) temp_nomem();  
+
+/* Per senddomain Cert */
+
+    for (i = 0;i <= senddomain.len;++i)
+      if ((i == 0) || (i == senddomain.len) || (senddomain.s[i] == '.')) {
+        if (tlsdomaininfo = constmap(&mapdomaincerts,senddomain.s + i,senddomain.len - i)) {
+          flagtlsdomain = 1;
+          break;
+        }
+      }
+
+/* Standard Cert (if any) */
+
+    if (!flagtlsdomain) {
+      if (!stralloc_copys(&senddomain,"*")) temp_nomem();
+      if (tlsdomaininfo = constmap(&mapdomaincerts,senddomain.s,1))
+        flagtlsdomain = 1;
+    }
+
+    if (flagtlsdomain) {
+      i = str_chr(tlsdomaininfo,'|');
+      if (tlsdomaininfo[i]) {
+        tlsdomaininfo[i] = 0;
+        j = str_chr(tlsdomaininfo + i + 1,'|');
+        if (tlsdomaininfo[i + j + 1]) {
+          tlsdomaininfo[i + j + 1] = 0;
+          if (!stralloc_copys(&keypwd,"")) temp_nomem();
+          if (!stralloc_copys(&keypwd,tlsdomaininfo + i + j + 2)) temp_nomem();
+          if (!stralloc_0(&keypwd)) temp_nomem();
+        }
+        if (!stralloc_copys(&keyfile,tlsdomaininfo + i + 1)) temp_nomem();
+        if (!stralloc_0(&keyfile)) temp_nomem();
+      }
+      if (!stralloc_copys(&certfile,tlsdomaininfo)) temp_nomem();
+      if (!stralloc_0(&certfile)) temp_nomem();
+      flagtlsdomain = 2;
+    }
+  }
+
+/* this file is too long -------------------------------------- work thru reciplist */
+
   if (!saa_readyplus(&reciplist,0)) temp_nomem();
   if (ipme_init() != 1) temp_oserr();
  
@@ -413,11 +1198,27 @@ char **argv;
  
     smtpfd = socket(AF_INET,SOCK_STREAM,0);
     if (smtpfd == -1) temp_oserr();
+
+    if (localip) {						/* set domain ip */
+      if (!ip_scan(localip,&domainip)) temp_noip();
+      if (!stralloc_copy(&helohost,&canonhost)) temp_nomem(); 	/* could be in control file */
+    
+      if (domainip[0] || domainip[1] || domainip[2] || domainip[3]) {
+        struct sockaddr_in si;
+        si.sin_family=AF_INET;
+        si.sin_port=0;
+        byte_copy(&si.sin_addr,4,domainip);
+        if (bind(smtpfd,(struct sockaddr*)&si,sizeof(si))) temp_oserr();
+      }
+    }
  
     if (timeoutconn(smtpfd,&ip.ix[i].ip,(unsigned int) port,timeoutconnect) == 0) {
       tcpto_err(&ip.ix[i].ip,0);
       partner = ip.ix[i].ip;
-      smtp(); /* does not return */
+      if (qmtpsend) 
+         qmtp(); 
+      else 
+         smtp(); /* read THOUGHTS; section 6 */
     }
     tcpto_err(&ip.ix[i].ip,errno == error_timeout);
     close(smtpfd);

@@ -1,0 +1,163 @@
+The SPAMCONTROL patch modifies the following QMAIL 1.03 files:
+
+= TARGETS
+= Makefile
+= alloc.c
+= case.3
+= cdb.h
+= cdb_hash.c
+= cdbmake_add.c
+= chkspawn.c
+= conf-cc
+= conf-ld
+= control.c
+= dns.c
+= error.c
+= error.h
+= hier.c
+= install-big.c
+= ipme.c
+= qmail.c
+= qmail.7
+= qmail-clean.c
+= qmail-control.9
+= qmail-log.5     
+= qmail-local.c
+= qmail-showctl.c
+= qmail-popup.c
+= qmail-popup.8
+= qmail-qmtpd.c
+= qmail-qmqpd.c
+= qmail-qstat.sh
+= qmail-queue.c
+= qmail-queue.8
+= qmail-remote.c
+= qmail-remote.8
+= qmail-send.c
+= qmail-send.9
+= qmail-smtpd.c
+= qmail-smtpd.8
+= sendmail.c
+= spawn.c
+= rcpthosts.c
+= received.c
+= config-fast.sh
+= qbiff.c
+
+Added files:
+
++ wildmat.c
++ base64.c
++ base64.h
++ qmail-badloadertypes.c
++ qmail-badloadertypes.9
++ qmail-badmimetypes.c
++ qmail-badmimetypes.9
++ case_startb.c
++ recipients.c
++ recipients.h
++ qmail-recipients.c
++ qmail-recipients.9
++ buffer.h
++ cdb.c
++ cdb_make.c
++ cdb_make.h
++ uint32_unpack.c
++ qmail-mfrules.c
++ qmail-mfrules.9
++ mfrules.c
++ mfrules.h
++ starttls.h
++ starttls.c
++ ucspitls.h
++ uint64.h
++ tls_remote.c
++ tls_remote.h
++ tls_timeoutio.c
++ tls_timeoutio.h
++ global.h
++ hmac_md5.h
++ hmac_md5.c
++ md5.h
++ md5c.c
++ smtpdlog.c
++ smtpdlog.h
++ qmail-smtpam.c
++ qmail-smtpam.8
++ case_diffrs.c
+
+UCSPI-SSL files:
+
+: ssl.lib
+: ucspissl.h
+: ucspissl.a
+
+Additional scripts:
+
+& qmail-alias2recipients
+& qmail-users2recipients
+& qmail-pwd2recipients
+& qmail-vpopmail2recipients
+& qmail-queue.scan
+& ldap_pam.pl
+
+Configuration file:
+
+% conf-spamcontrol
+% conf-ucspissl
+% conf-djbdns
+% conf-qmq
+
+Start script skeletons:
+
+% run_log
+% run_qmtpd
+% run_smtpd
+% run_smtpsd
+% run_smtpsub
+% run_send
+% run_pop3d
+% run_pop3sd
+
+The ClamAV STDERR patch:
+
+? clamav-0.90.1_output.patch_
+
+The DJBDNS+QMAIL add on
+
+? djbdns+qmail.tar.gz
+
+The SMTPREPLIES customization file
+
+% smtpreplies
+
+Informational files:
+
+% badmailfrom
+% badmimetypes
+% badloadertypes
+% badrcptto
+% install_spamcontrol.sh  (Installation shell script)
+% README_spamcontrol.html
+% README.wildmat      
+% README.bigtodo
+% README.qmailqueue
+% README.bouncemaxbytes
+% README.recipients
+% README.djbdns (use Makefile.djbdns)
+% README.mav
+% PROPOSAL.mav
+% README.clamav
+% INSTALL.spamcontrol  
+% HISTORY.spamcontrol (development information)
+% FILES.spamcontrol (this file)
+% LICENSE.spamcontrol 
+% TODO.spamcontrol
+% RELEASE_22.spamcontrol
+% RELEASE_23.spamcontrol
+% RELEASE_24.spamcontrol
+% RELEASE_25.spamcontrol
+% RELEASE_26.spamcontrol
+% RELEASE_27.spamcontrol
+% LOGGING.spamcontrol (description of SPAMCONTROL logging)
+% SMTPREPLY.spamcontrol (description of SPAMCONTROL SMTP Reply codes)

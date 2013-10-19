@@ -1,6 +1,6 @@
-.TH qmail-remote 8
+.TH qmal-remote 8
 .SH NAME
-qmail-remote \- send mail via SMTP
+qmail-remote \- send mail via SMTP or QMTP
 .SH SYNOPSIS
 .B qmail-remote
 .I host
@@ -26,7 +26,9 @@ sends the message to
 or to a mail exchanger for
 .I host
 listed in the Domain Name System,
-via the Simple Mail Transfer Protocol (SMTP).
+via the Simple Mail Transfer Protocol (SMTP/ESMTP) 
+perhaps encrypted via STARTTLS/TLS
+or the Quick Mail Transfer Protocol (QMTP).
 .I host
 can be either a fully-qualified domain name:
 
@@ -39,6 +41,12 @@ or an IP address enclosed in brackets:
 .EX
      [128.32.183.163]
 .EE
+ 
+In case the primary mail exchanger for that Domain
+will issue a 5xy reply message during the connection,
+.B qmail-remote
+will contact all responsible mail exchangers in turn
+in order to deliver the message anyway.
 
 The envelope recipient addresses are listed as
 .I recip
@@ -53,6 +61,7 @@ does not take options
 and does not follow the
 .B getopt
 standard.
+
 .SH TRANSPARENCY
 End-of-file in SMTP is encoded as dot CR LF.
 A dot at the beginning of a line is encoded as dot dot.
@@ -92,7 +101,7 @@ has taken responsibility for delivering the message to each
 acceptable recipient.
 .TP 5
 Z
-Message report: temporary failure.
+Message report: greylisted or temporary failure.
 .TP 5
 D
 Message report: permanent failure.
@@ -100,6 +109,68 @@ Message report: permanent failure.
 After this letter comes a human-readable description of
 what happened.
 
+.B qmail-remote
+may use SMTP Authenticaton to connect to remote hosts.
+The following reports are provided:
+.TP 5
+K
+no supported AUTH method found, continuing without authentication.
+.TP 5
+Z
+Connected to 
+.I host
+but authentication was rejected (AUTH PLAIN).
+.TP 5
+Z
+Connected to 
+.I host 
+but unable to base64encode (plain).
+.TP 5
+Z
+Connected to 
+.I host
+but authentication was rejected (plain). 
+.TP 5
+Z
+Connected to
+.I host
+but authentication was rejected (AUTH LOGIN).
+.TP 5
+Z
+Connected to 
+.I host
+but unable to base64encode user.
+.TP 5
+Z
+Connected to 
+.I host 
+but authentication was rejected (username).
+.TP 5
+Z
+Connected to 
+.I host 
+but unable to base64encode pass.
+.TP 5
+Z
+Connected to
+.I host
+but authentication was rejected (AUTH CRAM-MD5).
+.TP 5
+Z
+Connected to
+.I host
+but unable to base64decode challenge.
+.TP 5
+Z
+Connected to
+.I host
+but unable to base64encode username+digest.
+.TP 5
+Z
+Connected to
+.I host
+but authentication was rejected (username+digest).
+.PP
 The recipient reports will always be printed in the same order as
 .BR qmail-remote 's
 .I recip
@@ -109,10 +180,146 @@ recipient reports
 than
 .I recip
 arguments.
+.PP
+In case a CNAME can not be resovled 
+.B qmail-remote
+issues the following message:
+.TP 5
+Z
+CNAME lookup failed temporarily for:
+.IR host . 
+.PP
+If a SMTP connection is bound to a none-existing IP address
+.B qmail-remote
+will complain with the message:
+.TP 5
+Z
+System resources temporarily unavailable.
+.PP
+In case a QMTP connection can not be established 
+.B qmail-remote
+will issue the error message:
+.TP 5
+Z 
+recipient
+.I host
+did not talk proper QMTP.
+.PP
+On demand
+.B qmail-remote
+supports TLS/STARTTLS and will use the following messages:
+.TP 5
+K
+TLS transmitted message accepted.
+.TP 5
+Z
+Can't load X.509 certificate.
+.TP 5
+Z
+I wasn't able to create TLS context.
+.TP 5
+Z
+I wasn't able to process the TLS ciphers.
+.TP 5
+Z
+I wasn't able to setup CAFILE or CADIR for TLS.
+.TP 5
+Z
+I wasn't able to establish a TLS connection with:
+.IR host .
+.TP 5
+Z
+I wasn't able to gracefully close the TLS connection with: 
+.IR host .
+.TP 5
+Z
+Unknown TLS error for host:
+.IR host . 
 
+.PP
 .B qmail-remote
 always exits zero.
 .SH "CONTROL FILES"
+.TP 5
+.I authsenders
+Authenticated sender.
+For each
+.I sender 
+included in 
+.IR authsenders :
+.I sender\fB:\fIrelay\fB:\fIport\fB|\fIuser\fB|\fIpassword 
+.B qmail-remote
+will try SMTP Authentication 
+of type CRAM-MD5, LOGIN, or PLAIN 
+with the provided user name
+.I user 
+and password
+.I password 
+(the authentication information) 
+and eventually relay the 
+mail through
+.I relay
+on port
+.IR port .
+The use of 
+.I relay
+and 
+.I port 
+follows the same rules as for
+.IR smtproutes 
+Note: In case
+.I sender
+is empty, 
+.B qmail-remote
+will try to deliver each outgoing mail 
+SMTP authenticated. If the authentication
+information is missing, the mail is 
+delivered none-authenticated.
+.I authsenders
+can be constructed as follows:
+
+.EX
+   @example.com:relay.example.com|user|passwd
+   info@example.com:relay.example.com:26|infouser|infopasswd
+   :mailrelay.example.com|e=mc2|testpass
+.EE
+.TP 5
+.I domaincerts
+In case
+.B qmail-remote
+needs to present a client certificate to the server 
+(for authentication purposes) the PEM encoded 
+X.509 certificate can be provided per sending domain:
+.IR domain\fB:\fIcertificate\fB|\fIkeyfile\fB|\fIpassword .
+If 
+.I domain
+equals '*' this
+.I certificate
+is used as default.
+The file 
+.I certificate 
+may include the private key, thus 
+.I keyfile
+can be ommitted. Additionally, the private key can be protected with a
+.IR password .
+
+.TP 5
+.I domainips
+IP addresses to be used on outgoing connections.
+Each line has the form
+.IR senddomain\fB:\fIlocalip ,
+without any extra spaces.
+If
+.I domain
+matches the domain part in
+.IR sender ,
+.B qmail-remote
+will bind to
+.IR localip
+when connecting to
+.IR host .
+If it matches, it will also set the HELO string to the domain part of
+.IR sender .
 .TP 5
 .I helohost
 Current host name,
@@ -124,10 +331,28 @@ otherwise
 .B qmail-remote
 refuses to run.
 .TP 5
+.I qmtproutes
+Additional QMTP routes which have precedence over
+.IR smtproutes .
+QMTP routes should obey the form
+.IR domain\fB:\fIrelay\fB:\fIport ,
+without any extra spaces.
+.I qmtproutes
+follows the same syntax as
+.IR smtproutes .
+By default, 
+.B qmail-remote
+connects to QMTP service port 209. However
+you can chose a dedicated high-port for QMTP communication
+as defined in
+.IR qmtproutes .
+.TP 5
 .I smtproutes
 Artificial SMTP routes.
 Each route has the form
-.IR domain\fB:\fIrelay ,
+.I domain\fB:\fIrelay 
+or 
+.I domain\fB:\fIrelay\fB|\fIuser\fB|\fIpassword
 without any extra spaces.
 If
 .I domain
@@ -145,10 +370,14 @@ as its only MX.
 .IR recip .)
 .I host
 may include a colon and a port number to use instead of the
-normal SMTP port, 25:
+normal SMTP port, 25. In case, a userid and password is
+present,
+.B qmail-remote
+will try a SMTP authenticated session:
 
 .EX
    inside.af.mil:firewall.af.mil:26
+   :submission.myrelay.com:587|myuserid|mypasswd
 .EE
 
 .I relay
@@ -174,6 +403,16 @@ is routed by its MX records;
 any other address is artificially routed to
 .BR heaven.af.mil .
 
+Additionally,
+.I smtproutes 
+allows to forward bounces (with a 'Nullsender' MAIL FROM: <>)
+literally expressed as '!@'
+to a particular bounce host:
+
+.EX
+   !@:bouncehost.af.mil:27
+.EE
+
 The
 .B qmail
 system does not protect you if you create an artificial
@@ -195,6 +434,121 @@ Number of seconds
 .B qmail-remote
 will wait for each response from the remote SMTP server.
 Default: 1200.
+.TP 5
+.I tlsdestinations
+If present, this file advices
+.B qmail-remote
+to use TLS encryption for specific destination domains
+as provided by the forward-path and perhaps to validate/verify 
+the domain's server certificate:
+.IR destination:cafile|verifydepth:port|ciphers|senddomain .
+Unless explicitely configured,
+.B qmail-remote 
+accepts any or no certificate provided by the server,
+thus uses TLS for encryption only.
+Example:
+
+.EX
+  *:
+  .example.com:
+  securityfirst.com:/etc/ssl/cafile||!SSLv2:HIGH
+  .remote.com:/etc/ssl/certdir/|3:465
+  mx.partner.com:/etc/ssl/partnerca||:26|mydomain.net
+  =mx.myfriend.com:/etc/ssl/cacert|4
+  -.adhonlydomain.com:|aNULL:!kRSA
+  =*:
+  hiddenpartner.org:||:35 
+  !nosslhost.example.com:
+.EE
+
+This first line tells
+.B qmail-remote
+to use STARTTLS to any TLS capable ESMTP server.
+The second line requires from
+.B qmail-remote 
+to demand a STARTTLS connection for any destination
+address targeting domain
+.IR .example.com .
+The third line accepts STARTTLS connections
+for
+.I securityfirst.com
+only, if the X.509 certificate can be verified against
+the CA cert as provided via
+.I /etc/ssl/cafile 
+and with the acceptable ciphers 
+.IR SSLv2:HIGH
+Line number four tells 
+.B qmail-remote
+to use a 
+.I SMTPS
+connection on port
+.I 465
+to any host at
+.I .remote.com
+and accept this host only, if the peer's cert
+can be verified against a (hashed) CA cert available 
+in
+.I /etc/ssl/certdir/
+and does not exceed a verification depth of
+.IR 3 .
+Line 5 shows an example, how 
+.I tlsdestinations
+can be bound exclusively to a sender domain. In this case,
+only if
+.I mx.mydomain.net
+is used as sender domain, 
+a connection for the destination address
+.I mx.partner.com
+is mandatory secured by TLS with a CA cert available as
+.I /etc/ssl/partnerca 
+with a verification depth of
+.IR 2 .
+Furthermore, if 
+.B qmail-remote
+sees a destination address concatinated with a 
+.I = 
+it will only accept the certificate,
+if the X.509's DN can be validated
+against the FQDN of the server (by means of a DNS lookup)
+and it verifies against the 
+.IR cacert
+CA  certificate and does not exeed a verification depth of
+.IR 1 .
+In case, no perticular ciphers or CA certs are
+required, a double-colon '::' can be used as shortcut
+followed by the
+.IR port .
+In the same sense, 
+.B qmail-remote
+may accept TLS connections based on Anonymous DH (ADH)
+where the server does not provide a cert for authentication
+once the domain name is prepended with a 
+.IR - .
+Here, a wildcard '*' for the domain name is allowed.
+.B qmail-remote 
+will announce 
+.I ADH aNULl 
+as key encryption cipher and discards 
+.I !RSA
+for authentication if told so.
+Finally, the last line instructs
+.B qmail-remote
+to ommit the STARTTLS command for the recipient address
+.I nosslhost.example.com 
+as indicated with a leading 
+.IR ! .
+If
+.I port
+equals 465, SMTPS will be used instead of STARTTLS.
+
+Note that 'destination' is subject of the
+forwarding rules as provided by
+.IR authsenders ,
+.IR qmtproutes  ,
+and
+.IR smtproutes .
+
+
 .SH "SEE ALSO"
 addresses(5),
 envelopes(5),

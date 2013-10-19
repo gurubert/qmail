@@ -40,6 +40,12 @@ and does not enforce any restrictions on its contents.
 However, the recipients probably expect to see a proper header,
 as described in
 .BR qmail-header(5) .
+
+Programs included with qmail which invoke
+.B qmail-queue
+will invoke the contents of
+.B QMAILQUEUE
+instead, if that environment variable is set.
 .SH "FILESYSTEM RESTRICTIONS"
 .B qmail-queue
 imposes two constraints on the queue structure:
@@ -72,8 +78,19 @@ Address too long.
 .B 31
 Mail server permanently refuses to send the message to any recipients.
 (Not used by
-.BR qmail-queue ,
-but can be used by programs offering the same interface.)
+.BR qmail-queue),
+.TP
+.B 32
+Mail server does not accept the message.
+(The message includes an identified virus.)
+.TP
+.B 33
+Mail server does not accept the message.
+(The message is identified as spam.)
+.TP
+.B 34
+Mail server does not accept the message.
+(The message carries an invalid MIME attachment.)
 .PP
 All other
 .B qmail-queue
@@ -93,8 +110,10 @@ Unable to read the message or envelope.
 .TP
 .B 55
 Unable to read a configuration file.
-(Not used by
-.BR qmail-queue .)
+The virus scanner called via the
+.BR QHPSI
+returned with return code other then
+0 or QHPSIRC. 
 .TP
 .B 56
 Problem making a network connection from this host.
@@ -145,6 +164,31 @@ Internal bug; e.g., segmentation fault.
 .TP
 .B 91
 Envelope format error.
+.SH "QHPSI ARGUMENTS"
+The Qmail High Performance Scanner interface QHPSI allows
+.B qmail-queue
+to read up to seven arguments taken from the environment to be used
+as a call-interface for an external virus scanner:
+.TP 5
+.B QHPSI
+is set to the file name of the virus scanner, ie. QHPSI='/usr/local/bin/clamscan'.
+The path can be omitted, if the virus scanner is in the default path.
+.TP
+.B QHPSIARG1...3
+Optional additional arguments can be included here, ie. QHPSIARG1="--verbose". 
+Useful to suppress output in case an email is
+clean and to enable mailbox support for the virus scanner.
+.TP
+.B QHPSIRC
+To specify the return code of the virus scanner in case of an infection; default is 1.
+.TP
+.B QHPSIMINSIZE
+The minimal size of the message to invoke the virus scanner; default is 0.
+A typical choice would be QHPSIMISIZE=10000 (~10k).
+.TP
+.B QHPSIMAXSIZE
+The maximal size of the message to invoke the virus scanner; default is unrestricted.
+A typical choice would be QHPPIMAXSIZE=1000000 (~1M).
 .SH "SEE ALSO"
 addresses(5),
 envelopes(5),

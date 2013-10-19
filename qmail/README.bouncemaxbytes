@@ -1,0 +1,9 @@
+Here is a little patch by Frank DENIS aka Jedi/Sector One <j@4u.net> to
+limit the size of bounces.
+The default limit for bounces is 50000 bytes, but you can create a file in
+/var/qmail/crontrol/bouncemaxbytes (or wherever your control directory is)
+in order to change that number.
+
+Comment (eh):
+No default restriction here. A bouncemaxbytes value of '0' correspondes
+to unrestricted bounce size.

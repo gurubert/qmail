@@ -12,12 +12,12 @@ It then runs
 .IR subprogram .
 
 .B qmail-popup
-is most commonly invoked from
-.B inetd
+typically from
+.B tcpserver  
 as
 
 .EX
-   qmail-popup CHANGEME checkpassword qmail-pop3d Maildir
+   tcpserver 0 pop3 qmail-popup CHANGEME checkpassword qmail-pop3d Maildir
 .EE
 
 with
@@ -29,6 +29,7 @@ expects descriptor 0 to read from the network
 and descriptor 1 to write to the network.
 It reads a username and password from descriptor 0
 in POP's USER-PASS style or APOP style.
+File descriptor 5 is used to provide additional logging.
 It invokes
 .IR subprogram ,
 with the same descriptors 0 and 1;
@@ -54,8 +55,45 @@ Even if you use APOP,
 an active attacker can still take over the connection
 and wreak havoc.
 
+However, 
+.B qmail-popup
+can be adviced to use a TLS encrypted session by means of the environment variable UCSPITLS.
+In this case,
+.B qmail-popup
+communicates with
+.B sslserver
+instead of the
+.B tcpserver 
+program interface through a control socket, a reading and a writing pipe dynamically
+defined during the session start to be used for transport layer encryption.
+
 .B qmail-popup
 has a 20-minute idle timeout.
+
+.SH "LOGGING"
+.B qmail-popup
+provides logging of accepted and rejected POP3 sessions
+using about the same format as
+.BR qmail-smtpd .
+The authentication mechanism is indicated via
+.I User 
+in case the userid/password method was used, and
+.I Apop
+if APOP challenge/response was applicable.
+The communication protocol may be either
+.I POP3
+or 
+.I POP3S
+for of a STLS secured connection.
+The
+.I  username
+provided for authentication is displayed after the 
+sequence 
+.IR '?=' .
+
+
+The log is available on file descriptor 5. 
+In order to display the result use the redirection '5>&1'.
 
 .B qmail-popup
 is based on a program contributed by Russ Nelson.

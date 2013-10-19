@@ -3,6 +3,10 @@
 qmail-smtpd \- receive mail via SMTP
 .SH SYNOPSIS
 .B qmail-smtpd
+[
+.I checkprogram
+.I subprogram
+]
 .SH DESCRIPTION
 .B qmail-smtpd
 receives mail messages via the Simple Mail Transfer Protocol (SMTP)
@@ -10,7 +14,7 @@ and invokes
 .B qmail-queue
 to deposit them into the outgoing queue.
 .B qmail-smtpd
-must be supplied several environment variables;
+must be supplied with several environment variables;
 see
 .BR tcp-environ(5) .
 
@@ -23,19 +27,89 @@ or
 header fields.
 
 .B qmail-smtpd
-supports ESMTP, including the 8BITMIME and PIPELINING options.
+supports ESMTP and offers 8BITMIME, DATA, PIPELINING, SIZE, AUTH, and STARTTLS options.
+.B qmail-smtpd
+includes a "Mail From:" parameter parser and obeys "Auth" and "Size" advertisements.
+.B qmail-smtpd
+STARTTLS implementation requires the use of a patched version of 
+.B sslserver
+and of course the OpenSSL library.
+
+Authentication mode is facilitated in case the environment variable SMTPAUTH is set
+which tells
+.B qmail-smtpd
+to accept LOGIN, PLAIN, and eventually CRAM-MD5 AUTH types
+and if additionally a PAM
+.I checkprogram 
+is available which reads on file descriptor 3 the username, a 0 byte, 
+the password or CRAM-MD5 digest/response derived from the SMTP client, 
+another 0 byte, a CRAM-MD5 challenge (if applicable to the AUTH type),
+and a final 0 byte.
+.I checkprogram
+invokes
+.I subprogram
+upon successful authentication, which should return 0 to
+.BR qmail-smtpd ,
+effectively setting the environment variables RELAYCLIENT and TCPREMOTEINFO
+(any supplied value replaced with the authenticated username).
+.B qmail-smtpd
+will reject the authentication attempt if it receives a nonzero return
+value from
+.I checkprogram
+or
+.IR subprogram .
+
+STARTTLS support is enabled setting the environment variable UCSPITLS.
+In this case, 
+.B qmail-smtpd
+communicates with the
+.B sslserver
+program interface through a control socket, a reading and a writing pipe, dynamically
+defined during the session start to be used for transport layer encryption. 
+
+.B qmail-smtpd
+may employ additional DNS look-ups for the "Mail From:" envelope sender 
+address and/or the HELO/EHLO greeting string from the MTA client.
+
 .SH TRANSPARENCY
 .B qmail-smtpd
 converts the SMTP newline convention into the UNIX newline convention
 by converting CR LF into LF.
-It returns a temporary error and drops the connection on bare LFs;
+Usually, it returns a temporary error and drops the connection on bare LFs;
 see
 .BR http://pobox.com/~djb/docs/smtplf.html .
 
 .B qmail-smtpd
 accepts messages that contain long lines or non-ASCII characters,
 even though such messages violate the SMTP protocol.
+
 .SH "CONTROL FILES"
+.TP 5 
+.IR badhelo
+Unacceptable HELO/EHLO greeting strings.
+.B qmail-smtpd
+will reject every connection attempt 
+if the client MTA's HELO/EHLO greeting compares with 
+a wildmat pattern provided in
+.IR badhelo
+in case the environment variable 
+.B HELOCHECK
+is set. 
+.IR badhelo
+checks have precedence over DNS lookups.
+DNS lookups can be avoided, if the announced 
+HELO/ELO greeting string is concatinated 
+with a trailing '!' and included in 
+.IR badhelo : 
+
+.EX
+  localhost
+  localhost.localdomain
+  127.0.0.1
+  mygreetingstring
+  [192.168.1.2]!
+.EE
+
 .TP 5
 .I badmailfrom
 Unacceptable envelope sender addresses.
@@ -49,6 +123,159 @@ may be of the form
 .BR @\fIhost ,
 meaning every address at
 .IR host .
+Additionally, any envelope sender address can be filtered
+with a wildmat check:
+
+.EX
+  *@earthlink.net
+  !fred@earthlink.net
+  [0-9][0-9][0-9][0-9][0-9]@[0-9][0-9][0-9].com
+  answerme@save*
+  *%*
+  @yahoo.com-
+  @hotmail.com=
+  @mydomain.tld+
+  ~yahoo.com
+  ?nobody@example.com
+.EE
+
+A
+.I badmailfrom
+file with this contents reject all mail from Earthlink except from
+fred@earthlink.net. It also rejects all mail with addresses like:
+12345@123.com and answerme@savetrees.com. Further, any mail with
+a sender address containing a percent sign (%) is rejected.
+
+This implementation recognises 'appended' addresss in 
+.I badmailfrom 
+allowing to reject mails with particluar spoofed domain addresses:
+
+(1) The address is appended with a '-'. 
+Now, if
+.I TCPREMOTEHOST
+equals 'unknown', mails with the corresponding address are rejected
+(badmailfromunknown).
+
+(2) The address is appended with a '='.
+In case
+.I TCPREMEOTEHOST
+is set mails, whose domain part of the envelope addresses 
+.B not 
+matching 
+the corresponding entry are rejected (badmailfromwellknown).
+
+(3) The address is appended with a '+'.
+If 
+.I RELAYCLIENT 
+is not set and the sender address matches a corresponding entry 
+(anti-spoofing for internal addresses).
+
+(4) The address is enhanced with a leading '~'.
+This requires a (left to right partial) matching of 
+.I TCPREMOTEHOST 
+with the domain part of the envelope address.
+Thus, this specific entry in 
+.I badmailfrom 
+uses 
+.I TCPREMOTEHOST
+in the first place (badmailfrommismachteddomains).
+
+(5) The address is enhanced with a leading '?'.
+Emails with the corresponding sender address pass by all further
+.I  badmailfrom
+tests including the
+.I MFDNSCHECK 
+check.
+
+Note: The 'enhanced' addresses are not subject of the wildmat check
+and are evaluated in lower-case.
+
+The wildmat check is done in the order: 
+Least significant to most significant.
+Example:
+
+.EX
+  *
+  !
+  !*@*.*
+  *viagra*
+.EE
+
+.TP
+.I badloadertypes.cdb
+Unacceptable base64 loader types in the message.
+.B qmail-smtpd
+will reject every message if 5 significant
+characters (eg.
+.BR Mi5kb)
+anyware in the base64 encoded attachment is identical 
+to those compiled into
+.IR badloadertypes.cdb .
+Use
+.B qmail-badloadertypes
+to derive
+.I badloadertypes.cdb
+from
+.IR badloadertypes .
+In order to make the search efficient, all bad loader 
+types have to start with the same character (eg. "M").
+The control file
+.I badloadertypes.cdb
+is evaluated if the environment variable BADLOADERTYPE
+is set to the first character according to the contents of
+.IR badloadertypes .
+.TP
+.I badmimetypes.cdb
+Unacceptable base64 encoded MIME types in message.
+.B qmail-smtpd
+will reject every message if the first 9 significant
+characters (eg.
+.BR TVqQAAMAA )
+of any of it's embedded MIME types is identical with one
+compiled into
+.IR badmimetypes.cdb .
+Use
+.B qmail-badmimetypes
+to derive
+.I badmimetypes.cdb
+from
+.IR badmimetypes .
+The control file
+.I badmimetypes.cdb
+is evaluated if the environment variable 
+.I BADMIMETYPE
+is set.
+In addition, irregular BASE64 attachments carrying whitespaces can
+be rejected defining
+.IR BADMIMETYPE='!' .
+.TP 5
+.I badrcptto
+Unacceptable envelope recipient addresses.
+.B qmail-smtpd
+will reject every incoming message
+if the envelope recipient address is listed in
+.IR badrcptto .
+This control file is complementary to
+.IR badmailfrom .
+A line in
+.I badrcptto
+may be of the form
+.BR @\fIhost ,
+meaning every address at
+.IR host .
+.I badrcptto
+employes the same filtering logic for the envelope recipient as
+.IR badmailfrom .
+Effectively,
+.IR badrcptto
+allows a "whitelisting" of envelope recipient addresses:
+
+.EX
+  *
+  !user1@mydomain.com
+  !user2@mydomain.com
+  !*@anotherdomain.com
+.EE
 .TP 5
 .I databytes
 Maximum number of bytes allowed in a message,
@@ -72,8 +299,7 @@ Received line, the
 .B qmail-queue
 Received line, or the envelope.
 
-If the environment variable
-.B DATABYTES
+If the environment variable DATABYTES
 is set, it overrides
 .IR databytes .
 .TP 5
@@ -120,6 +346,16 @@ Put your 50 most commonly used domains into
 and the rest into
 .IR morercpthosts .
 .TP 5
+.I mailfromrules
+Acceptable "Mail From:" addresses for
+RELAYCLIENTs are included here. Use
+.B qmail-mfrules
+to derive
+.TP 5
+.I mailfromrules.cdb
+from
+.IR mailfromrules .
+.TP 5
 .I rcpthosts
 Allowed RCPT domains.
 If
@@ -131,14 +367,11 @@ any envelope recipient address with a domain not listed in
 .IR rcpthosts .
 
 Exception:
-If the environment variable
-.B RELAYCLIENT
-is set,
+If the environment variable RELAYCLIENT is set,
 .B qmail-smtpd
 will ignore
 .IR rcpthosts ,
-and will append the value of
-.B RELAYCLIENT
+and will append the value of RELAYCLIENT
 to each incoming recipient address.
 
 .I rcpthosts
@@ -151,6 +384,86 @@ may include wildcards:
 
 Envelope recipient addresses without @ signs are
 always allowed through.
+.TP 5
+.I recipients
+List of external resources providing acceptable,
+full-qualified envelope addresses
+(\'RCPT to: <recip@domain>\')
+to be used for recipient verification
+during the SMTP session.
+
+The external sources can be either
+.B fastforward
+compliant cdbs including the envelope addresses,
+where the path to a cdb has to be referenced
+relative to Qmail's home directory - or -
+.B checkpassword
+compatible Plugable Authentication Modules
+(PAM), receiving the envelope address on FD 3
+as 'recip@domain\\0\\0\\0' and returning '0'
+in a case of success and '1' in case of failure.
+The use of a PAM is indicated with a delimiting '|' and
+it will be called with up to five additional parameters;
+while a cdb follows a ':', which can be omitted.
+
+The list of external sources is consulted line-by-line for each
+recipient envelope address until the first positive answer,
+or a final negative response is encountered.
+Which external source to be queried, depends on the domain part of the
+recipient envelope address specified on the left side of the
+.I recipients
+file, while the external resource is provided right from the delimitor.
+
+The addresses' domain part is evaluted in lower-case.
+An exact domain match can be encompassed by means of a leading '@'.
+The '*' is a generic wildcard for all domains.
+Specific domains can be excluded from the lookup by means of a
+leading '!'; thus all recipient addresses are accepted for this domain.
+Additionally, a '!*' can be used as wildcard for all domains not encountered
+before in 
+.I recipients 
+(pass-thru).
+
+A
+.I recipients
+file is always constructed like 'domain:cdb','domain|pam',
+or simply 'cdb':
+
+.EX
+   !nocheck.com
+   @mydomain.com:users/recipients.cdb
+   example.com|bin/qmail-smtpam mx.example.com
+   *:etc/fastforward.cdb
+   *|PATH/ldapam ldapserver host port DN passwd
+   !*
+.EE
+
+Lagacy format:
+
+.EX
+   users/recipients.cdb
+   etc/fastforward.cdb
+.EE
+
+Note: Excluded domains starting with a '!'
+should be placed in the beginning of the
+.I recipients
+file for performance reasons, while the pass-thru
+statement '!*' has to be on the last line.
+The recipients check is applied after the
+.I rcpthosts
+evaluation.
+
+.B qmail-recipients
+may be used to construct a
+.I users/recipients.cdb
+from
+.IR users/recipients .
+
+The
+.B qmail-smtpd
+recipients mechanism supports Qmail's address extension (VERP).
+Unqualified envelope recipients are appended with \'@localhost\'.
 .TP 5
 .I smtpgreeting
 SMTP greeting message.
@@ -169,11 +482,307 @@ Number of seconds
 .B qmail-smtpd
 will wait for each new buffer of data from the remote SMTP client.
 Default: 1200.
+
+.SH "CONDITIONAL CONTROL FILES"
+The control files \fIrcpthosts\fR, \fImorecpthosts\fR, 
+\fIrecipients\fR, \fIbadhelo\fR 
+are "conditional" control files and evaluated 
+only if the environment variable RELAYCLIENT is not set. 
+On the other hand,
+\fImailfromrules.cdb\fR is only taken into account, if
+RELAYCLIENT is set.
+This allows 
+.B qmail-smtpd
+to relay mail messages from local clients and to filter 
+mails with certain SMTP envelope conditions
+originating from particular clients ("Split Horizon").
+Other conditional control files are 
+\fIbadloadertypes\fR, 
+\fIbadmimetypes\fR
+which depend on the setting of the corresponding 
+environment variables.
+
+.SH "ENVIRONMENT VARIABLES READ"
+Environment variables may be defined globally in the
+.B qmail-smtpd 
+startup script and/or individually as part of the
+.B tcpserver's
+cdb database.
+The environment variables may be quoted ("variable", or 'variable') and
+in case of global use, have to be exported.
+.B qmail-smtpd
+supports the following legacy environment variables, typically
+provided by
+.B tcpserver
+or
+.B sslserver
+or
+.BR tcp-env :
+.IR TCPREMOTEIP ,
+.IR TCPREMOTEHOST 
+.IR TCPREMOTEINFO 
+and 
+.IR TCPLOCALPORT
+as well as
+.IR RELAYCLIENT .
+Additionally, with SPAMCONTROL
+.B qmail-smtpd
+may use several environment variables for different purposes.
+.P
+Controlling the SMTP EHLO/EHLO:
+.IP
+.TP 5
+.I HELOCHECK=''
+enables a check of the provided HELO/EHLO greeting against
+the content of the control file
+.IR badhelo .
+In case no HELO/EHLO greeting is given, SMTP
+connections can be rejected, if
+.I HELOCHECK='!'
+is set. Checks on the presence and the content of
+the HELO/EHLO greeting string is facilitated, setting
+.IR HELOCHECK='.' .
+To enforce the match of the HELO/EHLO greeting with 
+the remote host's FQDN (
+.IR TCPREMOTEHOST ), 
+use
+.IR HELOCHECK='=' .
+.TP 5
+.IR HELOCHECK='A' | HELOCHECK='M'
+enable DNS A/MX lookup for the HELO/EHLO greeting string.
+In addition, the HELO/EHLO string is checked against 
+the content of
+.IR badhelo .
+.P
+Controlling the SMTP Mail From:
+.IP
+.TP 5
+.I LOCALMFCHECK
+is used to enable a "Mail From:" address Verification (MAV) for RELAYCLIENTs.
+Thus, the domain part of the "Mail From:" envelope sender address
+has to match an entry in
+.IR rcpthosts
+or
+.IR morercpthosts
+control files, if not explicitly defined otherwise.
+
+If LOCALMFCHECK='!' is set, the control file
+.I mailfromrules.cdb
+is evaluated and the MAV is facilitated employing the environment variables
+.IR TCPREMOTEINFO ,
+.IR TCPREMOTIP ,
+or
+.I TCPREMOTEHOST
+as a key.
+However, if LOCALMFCHECK='=' is provided, 
+.IR TCPREMOTEINFO 
+(i.e. set by Auth) has to match the "Mail From:" 
+envelope address (case insensitive).
+
+Note: In this case the whole "Mail From:" address may be verified; 
+not only the domain part.
+.TP 5
+.IR MFDNSCHECK
+enable DNS MX lookup for the domain part of the "Mail From:" envelope sender address.
+.P
+Controlling the SMTP RCTP TO:
+.IP
+.TP 5
+.I MAXRECIPIENTS
+is the number of Rcpt To:'s
+.B qmail-smtpd
+will accept in a SMTP session.
+If MAXRECIPIENTS ist not set, any number is allowed.
+.TP 5
+.IR TARPITCOUNT
+is the number of Rcpt To:
+.B qmail-smtpd
+accepts before it starts tarpitting.
+Default: 0 which means no tarpitting.
+.TP 5
+.IR TARPITDELAY
+tarpitdelay is the time in seconds of delay
+to be introduced after each subsequent Rcpt To:.
+
+Smart Rejection Notes:
+If
+.IR TARPITCOUNT
+is set and
+.IR TARPITDELAY
+= 0 (default)
+.B qmail-smtpd
+will issue after recognising
+.IR TARPITCOUNT
+invalid Rcpt To: a Recipient failure;
+thus additional Rcpt Tos will not be accepted.
+If, however
+.IR TARPITCOUNT
+is set and
+.IR TARPITDELAY
+= 999
+.B qmail-smtpd
+will issue after
+.IR TARPITCOUNT
+invalid Rcpt To: a Recipient failure
+.TP 5 
+.I RECIPIENTS450
+tells
+.b qmail-smtpd
+to issue a SMTP reply '450' (temporary rejection) 
+instead the default '550'
+in case the recipient was not listed in any
+.I recipients 
+cdb.
+.TP 5
+.I REPLYMAV
+allows the setting of customized SMTP reply messages in case
+of a MAV mismatch.
+.P
+Controlling the email body:
+.IP
+.TP 5
+.I BADLOADERTYPE='c'
+tells
+.B qmail-smtpd
+to evalute the control file
+.I badloadertypes.cdb
+with the starting string 'c'.
+.TP 5
+.I BADMIMETYPE
+see control file
+.IR badmimetypes.cdb .
+.TP 5
+.I BASE64
+tells QHPSI to enable virus checking only if a base64 encoded
+attachment was identified.
+.TP 5
+.I DATABYTES
+see control file
+.IR databytes .
+.TP 5
+.I QHPSI
+is used by 
+.B qmail-smtpd
+to supply the name of the virus scanner and it's path.
+.P
+Environment variables for SMTP authentication: 
+.IP
+.TP 5
+.IR SMTPAUTH
+is used to enable SMTP Authentication for the AUTH types
+LOGIN and PLAIN.
+In case
+.TP 5
+.IR SMTPAUTH='+cram'
+is defined,
+.B qmail-smtpd
+honors LOGIN, PLAIN, and additionally CRAM-MD5 authentication.
+Simply
+.TP 5
+.IR SMTPAUTH='cram'
+restricts authentication just to CRAM-MD5.
+If however
+.TP 5
+.IR SMTPAUTH='!'
+starts with an exclamation mark, AUTH is required. 
+You can enforce 'Submission' using this option 
+and binding
+.B qmail-smtpd
+to the SUBMISSION port \'587'\.
+In particular,
+.TP 5
+.IR SMTPAUTH='!cram'
+may be useful.
+In opposite, if
+.TP 5
+.IR SMTPAUTH='-'
+starts with a dash, AUTH is disabled for particular
+connections.
+Note: The use of 'cram' requires a CRAM-MD5 enabled PAM.
+.P
+Setting up the TLS/STARTTLS environment:
+.IP
+.TP 5
+.IR UCSPITLS
+enables encrpyted SMTP communication 
+via STARTTLS in case 
+.B sslserver
+is provided.
+In case 
+.IR UCSPITLS='!'
+is set, STARTTLS is required; while setting
+.IR UCSPITLS='-'
+disables STARTTLS.
+.P
+Other environment variables used:
+.IP
+.TP 5
+.IR DELIVERTO
+mail address for special recipients.
+.TP 5
+.IR RBLSMTPD
+feed from 
+.B rblsmtpd
+including the information received from the
+inquired RBL hosts and displayed as
+.IR X-RBL-Info: 
+message header.
+.TP 5
+.IR SPFINFO
+feed from a SPF enabled pre-processor including
+the following information:
+.IR SPFINFO="result|identity|clientip|helo|envelopefrom|receiver|problem|mechanism|" .
+These are included into a 
+.IR SPF-Received:
+message header by
+.BR qmail-smtpd .
+
+.SH "ENVIRONMENT VARIABLES SET"
+By means of the following environment variables, 
+the SMTP session an be interrogated:
+.TP 5
+.IR HELOHOST
+the HELO/EHLO greeting of the SMTP client.
+.TP 5
+.IR AUTHPROTOCOL
+the ESMTPA protocol uses for authentication.
+.TP 5
+.IR AUTHUSER
+the supplied username for authentication.
+.TP 5
+.IR MAILFROM
+containes the received "Mail From:" address.
+.TP 5
+.IR RCPTTO
+containes all received "Rcpt To:" addresses separated by blanks.
+.TP 5
+.IR TCPREMOTEINFO
+in authentication mode set to the accepted username.
+.TP 5
+.IR SSL_*
+information from
+.B sslserver ,
+if applicable.
+
 .SH "SEE ALSO"
 tcp-env(1),
 tcp-environ(5),
 qmail-control(5),
 qmail-inject(8),
 qmail-newmrh(8),
+qmail-newbmt(8),
+qmail-recipients(8),
+qmail-smtpam(8),
+qmail-mfrules(8),
 qmail-queue(8),
-qmail-remote(8)
+qmail-remote(8),
+qmail-send(8)
+
+.SH "HISTORY"
+The patch enabling the ESMTP AUTH and STARTTLS option is not part of the standard
+.B qmail-1.03 
+distribution. This man-page describes the options of 
+.B qmail-1.03 
+in addition with the
+.B SPAMCONTROL 2.7
+patch.

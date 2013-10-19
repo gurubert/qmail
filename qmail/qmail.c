@@ -6,14 +6,25 @@
 #include "fd.h"
 #include "qmail.h"
 #include "auto_qmail.h"
+#include "env.h"
 
-static char *binqqargs[2] = { "bin/qmail-queue", 0 } ;
+static char *binqqargs[2] = { 0, 0 } ;
+
+static void setup_qqargs()
+{
+  if(!binqqargs[0])
+    binqqargs[0] = env_get("QMAILQUEUE");
+  if(!binqqargs[0])
+    binqqargs[0] = "bin/qmail-queue";
+}
 
 int qmail_open(qq)
 struct qmail *qq;
 {
   int pim[2];
   int pie[2];
+
+  setup_qqargs();
 
   if (pipe(pim) == -1) return -1;
   if (pipe(pie) == -1) { close(pim[0]); close(pim[1]); return -1; }
@@ -97,6 +108,9 @@ struct qmail *qq;
     case 115: /* compatibility */
     case 11: return "Denvelope address too long for qq (#5.1.3)";
     case 31: return "Dmail server permanently rejected message (#5.3.0)";
+    case 32: return "Vmail server does not accept message (#5.3.0)";
+    case 33: return "Smail server does not accept message (#5.3.0)";
+    case 34: return "Amail server does not accept message (#5.3.0)";
     case 51: return "Zqq out of memory (#4.3.0)";
     case 52: return "Zqq timeout (#4.3.0)";
     case 53: return "Zqq write error or disk full (#4.3.0)";

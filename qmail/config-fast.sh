@@ -28,3 +28,8 @@ echo "$fqdn" >> QMAIL/control/rcpthosts
 chmod 644 QMAIL/control/rcpthosts
 echo "Now qmail will refuse to accept SMTP messages except to $fqdn."
 echo 'Make sure to change rcpthosts if you add hosts to locals or virtualdomains!'
+
+echo Enabling TLS  "*:" into control/tlsdestinations ...
+echo "*:" >> QMAIL/control/tlsdestinations
+chmod 644 QMAIL/control/tlsdestinations
+echo "Now qmail-remote will send TLS encrypted mails to enabled destinations." 

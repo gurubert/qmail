@@ -8,7 +8,7 @@
 #include "alloc.h"
 #include "scan.h"
 
-static char inbuf[64];
+static char inbuf[2048];
 static stralloc line = {0};
 static stralloc me = {0};
 static int meok = 0;

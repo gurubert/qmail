@@ -1,0 +1,70 @@
+Release Notes SPAMCONTROL 2.3
+=============================
+
+FEATURES
+--------
+
+SPAMCONTROL is an extension mainly for qmail-smtpd. It provides the following features:
+
+* ESMTP enhancements
+- Strict RFC 2821 conformance.
+- Reference SMTP Authentication (RFC 2554) implementation.
+- Reference 'Mail From:' parameter parser, supporting SIZE (RFC 1870) and AUTH options.
+- SMTP Authentication for qmail-remote.
+
+* SMTP envelope Anti-Spam-Tools
+- Wildmat Filters for the HELO/EHLO greeting and the 
+  'Mail From: <Return-Path>' in Split-Horizon fashion.
+- DNS Lookup for the HELO/EHLO greeting (A/MX) and the domain part of the 'Mail From:' (MX).
+- Customizable HELO/EHLO greeting checks.
+- Check, whether for Relayclients the domain part of <Return-Path> corresponds 
+  to a local address (Reverse Split-Horizon).
+- Tarpitting and Smart Rejection in case of too many invalid Recipients.
+
+* Recipients extensions
+- badrcptto wildmat filter.
+- Restricting the number of allowed 'Rcpt To:' per SMTP session.
+- Whitelisting: Controlling the reception of mails not only on a 
+  rcpthosts base but rather on the complete <Forwarding-Path> with fast and 
+  extensible cdb-lookup, domain-wildlisting and VERP support.
+
+* Bounce control
+- Restricting the size of bounces.
+- Doublebouncetrim.
+- Allow only one 'Rcpt To:' for Nullsender mails/None Delivery Reports/Bounces.
+
+* Virus prevention
+- Reference badmimetypes implementation.
+- Additional badloadertypes filter.
+- Qmail High Performance Scanner Interface (QHPSI).
+- Customizable SMTP 554 Reply Message.
+
+* qmail-smtpd logging
+- Extensible logging format.
+- Logging for failed and accepted SMTP sessions.
+- qmail-mrtg interface
+
+With SPAMCONTROL, Qmail can stand the two most common threats:
+
+* Lexical and/or dictionary Spam attacks in particular to none-existing <Forwarding-Path> 
+  and the subsequent generation of bounce messages to none-existing <Return-Path>.
+* Virus Bombing and resource exhaustion due to the Virus Scanners.
+
+
+CHANGES (2.2 -> 2.3)
+--------------------
+
+* Userland:
+- Removed 'blackholedsender' control file.
+- Improved qmail-smtpd logging.
+- Removed Andree Oppermann's performance enhancement.
+
+* Internal:
+- Minimal conf-spamcontrol.
+- Removed lots of configuration options; instead
+  the code has been highly condensed (20% reduction)
+  providing even more features.
+- Strict DJB coding. 
+
+
+Erwin Hoffmann, Cologne 2004-12-08

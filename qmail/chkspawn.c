@@ -1,3 +1,4 @@
+/* Silent spawn limit increased to 512 (still conservative) */
 #include "substdio.h"
 #include "subfd.h"
 #include "fmt.h"
@@ -8,7 +9,7 @@
 char num[FMT_ULONG];
 fd_set fds;
 
-void main()
+int main()
 {
   unsigned long hiddenlimit;
   unsigned long maxnumd;
@@ -22,8 +23,8 @@ void main()
     _exit(1);
   }
 
-  if (auto_spawn > 255) {
-    substdio_puts(subfderr,"Oops. You have set conf-spawn higher than 255.\n");
+  if (auto_spawn > 512) {
+    substdio_puts(subfderr,"Oops. You have set conf-spawn higher than 512.\n");
     substdio_flush(subfderr);
     _exit(1);
   }

@@ -1,0 +1,450 @@
+HISTORY
+-------
+
+Convention: Version.Release.Fixlevel
+
+V.R.F	Description					Date
+--------------------------------------------------------------------
+1.0.0	Initial Release 				2000-01-21
+1.0.1	RECEIPIENTS --> RECIPIENTS (wrong spelling)
+	mv ./control/receipients ./control/recipients ! 
+	Mods to README.spamcontrol. This file.
+	Small changes in qmail-showctl.			2000-02-03	
+1.0.2	Installation script spamcontrol.sh added.
+	Installation description updated accordingly.	2000-02-17
+1.0.3	Logging for RELAYCLIENT included and improved.
+	Conformance to RFC 2505 enforced.
+	README.spamcontrol updated.
+	spamcontrol.pdf improved.
+	spamcontrol.sh fixed.				2000-02-23
+1.0.4	RECIPIENTS --> RCPTTO
+	(to make it compliant with qmail-ldap)
+	mv ./control/recipients ./control/rcptto ! 
+	Fixed reversed DIFF for qmail-log.5.
+	SPAMCONTROL.PDF updated.
+	Improved README.spamcontrol.			2000-03-03
+1.0.5	Changed SMTP Return-Code for Relaying to 533.
+	Mods to README.spamcontrol.			2000-03-07
+1.0.6   Display error in qmail-control fixed.	
+	SPAMCONTROL.SH uninstallation added.
+	INSTALL.spamcontrol updated.			2000-03-13
+1.0.7	Bug in qmail-smtpd.c fixed for multiple RCPTs.
+	Display error in log-file fixed (qmail-smtpd.c).
+	qmail-log man-page changed accordingly.
+	Significant changes in README.spamcontrol.
+	Control file ./badrcptpatterns included.
+	TESTING.spamcontrol included.
+	INSTALL.spamcontrol updated.			2000-04-16
+1.1.0   MFCHECK included in qmail-smtpd.c.
+        New environment variable and control file.
+        qmail-showctl.c, qmail-log.5, qmail-control.9,
+        and qmail-smtpd.8 changed accordingly.
+        README.spamcontrol updated. Wrong description
+        for control characters corrected.               2000-05-03
+1.2.0	TARPIT and RELAYMAILFROM Patch from
+        Chris Johnson included in qmail-smtpd.c.
+	New control files and envrionment-variables
+        ./tarpitdelay and ./tarpitcount added.
+	New control file ./relaymailfrom added.
+        qmail-showctl.c updated.
+        qmail-smtpd.8 and qmail-control.9 (man files)
+        and documentation changed.			2000-06-26
+1.2.1	Changed qmail-smtpd.c to enable coexistance
+	of ./relaymailfrom with ./relayclients and 
+ 	./relaydomains.					2000-07-07
+1.2.2	Due to a mistake, forseen changes from 1.2.0
+	to 1.2.1 were not incorporated.
+	Fixed here.					2000-07-15
+1.3.0	Will Harris SMTP MSG SIZE patch included.
+	This makes qmail-smtpd RFC 1870 compliant.
+	README.spamcontrol adjusted for this feature.	2000-07-15
+1.4.0	John Saunders NEWLINE patch included for
+	convenience. See README.newline.
+	Markus Stumpf qmail-smtpd logging scheme
+	employed instead of SYSLOG calls.
+>>>>>>	THIS VERSION ONLY WORKS WITH TCPSERVER !! <<<<<<	
+	man pages qmail-log.5, qmail-control.9, and
+        qmail-smtpd.8 modified.
+	spamcontrol.sh includes now a flag for SOLARIS.
+	README.spamcontrol and INSTALL.spamcontrol
+	updated.					2000-10-04
+1.4.1	BUG FIX: qmail-smtpd exits unconditionally
+	for inital MAIL FROM: <address> with non-existing
+	DNS MX-Record (qmail-smtpd.c).
+	REASON: The variable for RCPT TO: was given to
+	the error-log, although it was not defined yet.
+	This caused an exit(1) to qmail-smtpd.
+	FIX: Reports of RCPT TO: ommitted in error-log.
+	qmail-log.5 changed accordingly.
+	THANKS: Antonio Moragues <AMoragues@uni2.es>,
+	Charles Warwick <CharlesW@uccentre.ucaqld.com.au>
+	Fixes incorporated in 1.3.1			2000-11-26  
+1.4.2	qmail-smtpd exits now immediately after
+	recognizing invalid E-Mail addresses.		
+	The bad* files are evaluated case-insensitive.	2000-11-26
+1.5.0 	Scott Gifford's "NULL" IP address patch included.
+	BUG-FIX: While evaluating E-Mail addresses against
+	the bad* files, SPAMCONTROL keeps the case.
+	Improved spamcontrol.sh. README.spamcontrol 
+	and FILES.spamcontrol updated.			2001-06-05
+1.6.0	REMOVED copying addresses to lowercase; it was obsolete.
+	By default, qmail-smtpd keeps the case, but
+	evaluates addresses case-insensitive.
+	INCLUDED a "blackholedsender" file, which acts
+        like a "badmailfrom", except that after 
+	recognizing the MAIL FROM: address, qmail-smtpd
+	exits without SMTP notification immediately.
+	UPDATED spamcontrol.pdf, qmail-control.5,
+	qmail-smtpd.8.					2001-09-15
+1.6.1   Improved man-page qmail-smtpd.8 to clearify the
+        use of RELAYCLIENT and RELAYDOMAINS.
+        Added BLACKHOLEDSENDER into qmail-showctl.c.
+        Updated README.spamcontrol.			2001-09-21	
+1.6.2	qmail-control.9 now patched initially. Otherwise
+	identical to 1.6.1 but this version was broken
+	due to change of development server.		2001-10-19
+1.6.3	qmail-showctl shows includes now blackholedsender
+	correctly					2001-11-08
+1.7.0 	REMOVED early quit while recognizing BAD* conditions.
+	This is the original implementation. 
+	Use control file BLACKHOLEDSENDER instead.
+	INCLUDED Null-Sender-Mail multiple RCPTS control 
+	(see qmail-smtpd man-page).
+        UPDATED man pages and documentation.		2002-01-03
+1.7.1	INCLUDED (once again on demand) early quit for
+	BAD* and Null-Sender-Mail conditions.
+	UPDATED README.spamcontrol.
+	Added section "ENVIRONMENT VARIABLES" in
+	qmail-smtpd.8.
+	INCLUDED something like a LICENSE.
+1.7.2	Due to some reason, wildmat.c contained not-fatale
+	"^M" as EOL delimitor. Removed them.	
+	Updated README.spamcontrol once more.		2002-01-25
+1.7.3	Introduced "splitt horizon" evaluation of
+	badmailfrom and badmailpatterns.		
+	Added section "CONDITIONAL CONTROL FILES" in
+	qmail-smtpd.8.
+	Updated README.spamcontrol.		
+	Updated spamcontrol.pdf.	 		2002-01-29
+1.8.0	Introduced limit on maximum number of RCPT TO:'s 
+	per SMTP connection.
+	Patched qmail-control(5) instead of qmail-control(9).
+	Updated qmail-smtpd.c, qmail-showctl.c.
+	Updated man-pages qmail-smtpd, qmail-log, and qmail-control.
+	Updated INSTALLATION and README.		2002-02-22
+1.8.1	qmail-smtpd strips now single-quotes "'" in SMTP addresses.
+	Minor change in docu.				2002-04-08
+1.8.2	Bug in use of SMTP envelope addresses fixed.
+        SPAMCONTROL now supports correctly RFC2821 extended 
+        addresses. Tx to Dallas Engelken.		2002-11-19
+1.8.3	Reworked documentation; README.spamcontrol, spamcontrol183.pdf.
+							2003-01-09
+1.9.0	INCLUDED all "Recommended patches".		2003-01-20
+1.9.1	REMOVED "single quote" stripping.
+ 	CHANGED documentation.
+	IMPROVED spamcontrol.sh (installation).		2003-03-17
+1.9.2	FIXED bug initialising the NULLSENDERMULTRCPTS counter.
+							2003-03-24
+
+++++    End of life cycle for Version 1                  ++++ 
+
+2.0.0	INCLUDED SMTP AUTH (0.31) patch from Krzysztof Dabrowski.
+2.0.1 	INCLUDED additional checking on the HELO/EHLO greeting.
+2.0.2	INVERTED logic from NODNSCHECK to MFDNSCHECK.
+2.0.3	UPDATED ipme patch to moreipme from Scott Gilford.
+	RECOVERED SIZE declaration in EHLO.
+	Conditional compiling for most of the add-ons.
+	UPDATED qmail-showctl.c, man-pages.		2003-04-25
+2.0.4	More verbose logging in case of filtered mails.
+	(moved filtering POST smtp_rcpt).
+	UPDATED qmail-log man page.
+	INTRODUCED conf-spamcontrol.
+2.0.5	INCLUDED logging of AUTH type.
+	REMOVED additional 'hostname' argument in call
+	of qmail-smtpd (use SMTP Greeting instead).
+	UPDATED README.
+2.0.6	FIXED Bug calling childs.
+	FIXED SMTP EHLO Response.
+	Challenge taken exclusively from ./me.
+	UPDATED docu and qmail-smtpd man page.		2003-05-12
+2.0.7	INTRODUCED LOCALMFCHECK for RELAYCLIENTS.
+	FIXED some precompiler flaws.
+	UPDATED man-pages and docu.			2003-05-15
+2.0.8	FIXED bug in sizelimit function.
+	FIXED bug in badrcpto count.			2003-08-06
+2.0.9	FIXED bug copying RCPTTO address to early.	2003-08-12
+2.1.0	New development cycle. Unified bad* files.	2003-09-08
+	See RELEASENOTES.spamcontrol.
+2.1.1	SMTP Auth is now checkpassword API confirm.	2003-09-15
+	Instead control/me TCPLOCALHOST is used.
+2.1.2	Includes the 'Warlord' code. Many changes.
+	Added/updated documentation + man pages.	2003-09-18
+2.1.3	Fixed bug in badmimetype copy for logging.
+	Changed slightly logging info.			2003-09-23
+2.1.4	REMOVED control file maxrecipients.
+	Reworked README.spamcontrol.			2003-09-29
+2.1.5	FIXED man page qmail-smtpd.			2003-10-10
+2.1.6	FIXED bug reporting RECIPIENT for badmailfrom.	
+ 	UPDATED README for FDLOG usage.			2003-10-16
+2.1.7	FIXED bug causing SIGFAULT due to undefined
+	argument to err_size function.
+	REMOVED obsolete wildmat.c and base64.c entries
+	in TARGETS.					2003-10-26
+2.1.8	INCLUDED reporting of all SMTP sessions in 
+	qmail-smtpd log.
+	INCLUDED the QUEUE_EXTRA and and BIGTODO patch
+	from Bruce Guenter and the RUNONCE patch from
+	Andre Oppermann to avoid the Silly Qmail Syndrom.
+	ADDED new control file 'queuetodotime'.
+	UPDATED documentation and man pages.		2003-11-17
+2.1.9	INCLUDED misc. 'sendmail.c' patches from 
+        Mathias Andree and David Phillips.
+	INCLUDED 'No Double Bounce' Patch from Russ Nelson.
+	INCLUDED BOUNCEMAXBYTES Patch from Frank DENIS and
+	ADDED new control file 'bouncemaxbytes'.  
+	UPDATED qmail-showctl.c and the man pages.	2003-11-20
+
+2.2.0	ADDED complete logging scheme for SMTP sessions.
+	REMOVED 'NULLSENDERMUTLRCPTS' environment variable.
+	REMOVED 'BADMIMETYPE=abcdefghi" environment variable
+ 	flexibility.
+	LINTING and rewrite of code for better transparency.
+	UPDATED man pages to reflect changes.		2003-12-04
+2.2.1	The 'recipients' extension support now VERP
+	fully (i.e. (username-ext1-ext2@dom1-dom2.com).
+	UPDTED README and included README.recipients.	2003-12-05
+2.2.2	IMPROVED VERP handling for RECIPIENTS extension. 
+	Minor change to qmail-smtpd regarding logging.	2003-12-10
+2.2.3	Synced with RECIPIENTS 0.1.5.			2003-12-16
+2.2.4	Synced with RECIPIENTS 0.1.6.
+	INCLUDED fixed for closed FD in case of AUTH.	2003-12-18
+2.2.5	Redone compile time option (conf-spamcontrol)	2003-12-19
+2.2.6   INCLUDED option for qmail-smtpd error 443 
+	for whitelisting.
+2.2.7	INCLUDED option for split horizon feature for Whitelisting.
+	INCLUDED check for existing QMAILHOME/doc (spamcontrol.sh).	
+	CHANGED environment variable for Bruce Guenter's
+	QUEUE_EXTRA patch to QMAILQUEUE (legacy).
+	FIXED some notorious comments for "#define".	2004-01-14
+2.2.8	INCLUDED the fix for very large email headers.
+	UPDATED man qmail-smtpd to include hint for 
+	environment variable QMAILQUEUE.
+	UPDATED README.spamcontrol.			2004-01-22
+2.2.9	FIXED wrong labeled "Accept::ORIG::Local_Sender:"
+	in qmail-smtpd log.				2004-01-28
+
+2.3.0	Initial code review.				2004-06.22
+2.3.1	ADDED badloadertype filtering capability.	2004-08-05
+2.3.2	ADDED QHPSI interface.				2004-08-11
+2.3.3	MODIFIED RECIPIENTS extension (wilddomains),
+	ADDED 'Mail From:' parser.			2004-08-20
+2.3.4	MODIFIED qmail-smtpd logging
+	IMPROVED bad*type / QHPSI interaction.		2004-09-14
+2.3.5	ADDED qmail-remote SMTP authentication.
+	IMPROVED HELO/EHLO greeting string check.	2004-09-28
+	FIXED missing badrcptto evaluation.		2004-11-05
+2.3.6	FIXED wrong flagdnsmf check.
+	FIXED wrong statement for err_reqauth.
+	LINTED qmail-smtpd.
+	REMOVED obsolete #ifdefs in sendmail.c.
+	RE-INCLUDED 550 reply on RECIPIENTS check.
+	INCLUDED Makefile.djbdns (provisionell).	
+	IMPROVED Rcptto counter.			2004-11-18
+2.3.7	Synced with WARLORD 1.3.8.			2004-11-19
+	INCLUDED qmail-vpopmail2recipients script.	2004-11-23
+2.3.8	Re-Introduced 550 SMTP Reply for RECIPIENTS.
+	Synced with QHPSI 0.1.7 (bug-fix).		2004-11-29
+2.3.9	FIXED showstopper bug for BIGTOD0; not all
+	necessary changes were incorporated in 2.3.	2004-12-03
+2.3.10	FIXED "status 11" abort; bug in WARLORD.
+	FIXED missing tarpitcount evaluation (tx. Renato Botelho).
+	ADDED flagerrcpts -> quit if equal TARPITCOUNT. 2004-12-08
+2.3.11	FIXED incompatibility of LOCALMFCHECK and RELAYMAILFROM.
+	Included log message if RELAYMAILFROM.		
+	FIXED double typo for '#ifdef RECIEIPIENT(S)550'.
+	in qmail-smtpd.	tx. Roman Levitskiy.		2004-12-15
+2.3.12	SYNCED with qmail-smtpd-auth.063 (RFC 3848).
+	SYNCED with warlord 1.3.10 
+	(use of stralloc badmimetype & badloadertype,
+	multiple occurrance of badloaderinit char).	2005-01-29
+2.3.13	SYNCED with warlord 1.3.11			
+	(possible false positives for badloadertype).	2005-03-11
+	FIXED wrong Nullsender count for Exim's
+	reverse 'MAIL FROM:' check using SMTP_RESET.	2005-04-04
+
+2.4.0	Initial setup.
+2.4.08	First integrated version for SPAMCONTROL 2.4.	2006-02-12
+2.4.09	Changed 'finishing' of protocol sequence.	2006-02-13
+2.4.10	Final tested version; basics are working.	2006-03-12
+2.4.11	FIXED bug in qmail-remote's HELO fallback.
+	FIXED logic bug in qmail-smtpd for badmailfrom
+	and relayclient.
+	ADDED finished README_spamcontrol.html.		2006-03-29
+2.4.12	FIXED logic in bmfcheck (less flex but save).
+	INCLUDED additional info in Bad_Mailfrom log.
+	FIXED received.c header display.		
+	FIXED wrong check order for HELOCHECK="=".	
+	ADDED Bad_Helo log indicator (man qmail-log).	2006-04-24
+2.4.13	FIXED bug in Received Header.
+	CHNGD Recipients default to REPLY=550.		2006-05-01
+2.4.14	FIXED wrong qmail-queue.c patch inclusion.
+	CHNGD received header infos.
+	ADDED clamav STDERR patch.			2006-05-16
+2.4.15	FIXED missing IP information in Received header.
+	ADDED ucspi-ssl-0.70_ucspitls-0.4.patch_.
+	CHNGD order of qmail-smtpd reject conditions.	2006-06-21
+2.4.16	SYNCD with QHPSI 0.2.0 (better handling of errors).
+	SYNCD with Warlord 1.4.1 (white spaces in B64 string).
+	FIXED bug in require TLS error message.		
+	REMVD some remnant errno.h patches.		2006-08-11	
+2.4.17	ADDED qmtproute functionality to qmail-remote.	2006-08-23
+...
+2.4.20	ADDED qmail-queue.scan
+2.4.21  CHNGD qmail-queue.scan				2006-11-28
+	MDFYD qmail-smtpd + qmail-queue.scan		2006-12-03
+
+
+2.5.0	Initial setup.
+	SYNCD with qmail-authentication.066.		2006-12-28 
+	ADDED GREETDELAY and NEWLINE feature (again).
+	REMVD tarpitcount/tarpitdelay ctl file.
+	TBD:  WARLORD, RECIPIENTS, STARTTLS for qmail-remote.
+2.5.1	SYNCD with WARLORD 1.4.0.			2006-12-29
+2.5.2	ADDED DNSOverSize patch.			
+	ADDED bounceroutes (!@) extension.		2007-01-16
+2.5.3	CHNGD logic in qmail-remote.			
+	ADDED qmail-qmtpd.c, qmail-qmqpd.c (received.c)	2007-01-17
+2.5.4	FIXED break in logic for bounceroutes.
+	ADDED fixes from Jan Krueger 
+	(Makefile + 64 bit issues)			2007-02-25
+2.5.5	ADDED qmail-remote.c fixes from Kyle Wheeler.	
+	SYNCD with qmail-authentication.067.		
+	ADDED output.c patch for clamAV 0.90.1.		2007-03-21
+2.5.6	REMVD GREETDELAY in favor of rblsmtpd.		2007-06-07
+2.5.7	Cleaning.					2007-07-24
+2.5.8	ADDED new badmailfrom ('=') filter. 	
+	REMVD obsolete environment variables; cleaning.	2008-07-14
+2.5.9	SYNCD with qmail-authentication 0.68.		2008-08-09
+2.5.10	SYNCD with recipients.0511. Post alpha.		2008-09-01
+2.5.11	CHNGD RELAYMAILTO to DELIVERTO in qmail-smtpd.	2008-09-02
+2.5.12	CHNGD some messages in qmail-smtpd from
+	Accept to Info (Auth, Starttls).		2008-09-17
+2.5.13	FIXED bug in qmail-smtpd reporting occasionally
+	false infections even without QHPSI.		2008-10-01
+2.5.14	CHNGD format of qmail-smtpd TLS receved line.	2008-10-07
+2.5.15	First beta tested version.			2008-10-22
+2.5.16	SYNCD with RECIPIENTS 05.14, 
+	FIXED badmailfrommwellknown.			2008-11-02
+2.5.17	SYNCD with RECIPIENTS 0.5.15.			2008-11-05
+2.5.18	CHNGD qmail-queue return codes to cope
+	with viruses, spam, and any data errors.	2008-11-10
+2.5.19	FIXED wrong flagmav evaluation,
+	UPDAT man page qmail-control, 
+	UPDAT ldap_pam.pl (0.9)				
+	SYNCD with RECIPIENTS 0.5.16.			2008-12-08
+2.5.20	SYNCD with RECIPIENTS 0.5.17.
+	UPDAT ldap_pam.pl (0.9.2)			2009-02-18
+2.5.21	SYNCD with RECIPIENTS 0.5.18 (qmail-recipients)	
+	ADDED verbose CNAME mess. in qmail-remote log.	2009-02-24
+2.5.22	RMOVD experimental code in qmail-smtpd.
+	FIXED badhelo evaluation.			2009-03-03
+2.5.23	FIXED a flaw in rcpthosts.c expecting the file
+	descriptor to survive for morecpthosts.cdb.	2009-03-16
+2.5.24	FIXED a flaw in the internal logic for
+	tarpitting evalution (qmail-smtpd).		
+ 	Improved logging for RCPTTO during DATA.	2009-04-22
+2.5.25	ADDED tarpitdelay < 0 logic for the notorious.	2009-05-12
+2.5.26	FIXED missing "\r\n" + "+ .." for *qqx in qmail-smtpd.
+	and UPDAT man qmail-queue.	tx Christopher.
+	ADDED mirroring SMTP dialog variables asap in
+	environment (aka DELIVERTO feature).
+	UPDAT/FIXED ucspi-tls patch (0.5.) tx Serge.	
+	SYNCD with RECIPIENTS 0.5.20			2009-08-16
+
+
+2.6.0	FORK from SPAMCONTROL 2.5.10.			2008-09-02
+2.6.06	SNYCD with SPAMCONTROL 2.5.26.			2009-08-23 
+2.6.07	ADDED outoingip patch from 
+	Alberto Brealey-Guzmain.			2009-08-23
+2.6.08	SYNCD with RECIPIENTS 0.6.03.			2009-09-18
+2.6.09	USCPI-TLS routines refurbished.			2009-09-28
+2.6.10  Added remote.tls.c/h. TLS working.		2009-10-04
+2.6.11	Added remote_tls.c/h. TLS Working.		2009-10-11
+2.6.12  Restructuring code.				2009-10-16
+2.6.13	Reworked UI; added man pages.			2009-10-17 
+2.6.14	Finished UI. Reworked UCSPI-TLS.		2009-10-18
+2.6.15	SYNCED with smtp-authentication 0.6.10.    	2010-03-08
+2.6.16	Internal test version.				2010-03-12	
+2.6.17	First complete build.				2010-03-17
+2.6.18	Added peer verification.			2010-03-18
+2.6.19	Added UI for djbdns (conf-djbdns) +
+	SMTP Reply message customization.		2010-03-19
+2.6.20	FIXED SMTP Greeting for qmail-remote.
+	RELXD requirement for OpenSSL > 0.9.7.
+	CHNGD validation magic character to '='.	
+	ADDED '?' appended addresses for qmail-smtpd.
+	IMPRV djbdns seamless integration.		2010-04-26
+2.6.21	FIXED wrong default domain characater in 
+	domaincerts (was: '+' instead '*').
+	UPDAT qmail-remote man page for TLS codes.	
+	UPDAT ucspi-ssl patch (0.6).			2010-05-04
+2.6.22	FIXED missing #ifdef for TLS header
+	files in qmail-remote.
+	FIXED double EHLO greeting in qmail-remote.	2010-08-04
+2.6.23	FIXED bug in qmail-remote SMTPS negotiation; 
+	straightened initialisation sequence.
+	UPDAT qmail-queue.scan skript (0.9.7)		2010-09-07
+
+2.7.00  Fork from SC 2.6.20
+	RMOVD some options (moreip/*)
+2.7.01	SYNCD with authentication 0.7.1.
+2.7.02	ADDED qmail-smtpam.				2010-11-04
+2.7.03 	CHNGD antispoofing in qmail-smtpd.	
+2.7.04	MODUL arized qmail-smtpd logging.
+2.7.05	SYNCD with SC 2.6.24 (TLS flaw).
+2.7.06  CHNGD Starttls + Auth UI for qmail-smtpd.
+	MOVED to ucspi-ssl-0.80 files.
+2.7.07  FIXED man pages.
+2.7.08 	CHNGD tlspeerhosts to tlsdestinations.		2011-04-15
+2.7.09	ADDED qmail-remote TLS cone domain feature.	2011-04-17
+2.7.10 	Finished qmail-remote tlsdestination feature.	2011-04-22
+2.7.11	FIXED double 451/220 Return code in qmail-smtpd.
+	CHNGD UI for CRAM-MD5 announcement in qmail-smtpd.
+	ADDED CAPA announcement for qmail-pop3d.	2011-05-18
+2.7.12	ADDED tarpitting for SMTP Auth (qmail-smtpd).
+	CHNGD behavior in case of badhelo for qmail-smtpd:
+		die_helo instead of err_helo.
+		Client has to invoke new session.	2011-06-16
+2.7.13	ADDED qmail-popup logging. 			2011-12-26
+2.7.14	ADDED spfheader in received.c.			2012-01-31
+2.7.15	CHNGD Unified qmail-smtpd/popup logging.	2012-02-17
+2.7.16	ADDED qmail-smtpd modssl info for SMTPS.	2012-02-20
+2.7.17	SYNCD with qmail-authentiction 0.74.		2012-05-25
+2.7.18	SYNCD with ucspi-ssl 0.82.
+2.7.19	SYNCD with qmail-authentication 0.75.		2012-10-22
+2.7.20	ADDED rblinfo header.				
+	SYNCD with mav-0.20.				2013-02-03
+2.7.21	ADDED badmailfrom '~' mismatcheddomain.
+	FIXED qmail-qmtpd 64 bit vulnerability (Gunski).
+	FINSH Readme doc.				2013-03-15
+2.7.22	FINSH SPF hook.					
+	INCLD missing cat3/man3 dirs.			2013-03-17
+2.7.23	SYNCD with qmail-authentication 0.80.
+	FIXED docs and man pages.			2013-03-23
+2.7.24	SYNCD with qmail-authentication 0.81.
+	FINSH badmailfrommismatched senders.		2013-03-29
+2.7.25	FIXED C/R eval. bug in qmail-smtpd (tx serge).	2013-04-09
+	ADDED provisional Greylisting recognition
+	in qmail-remote.				2013-04-13
+2.7.26	CHNGD qbiff.c from public source to use 
+	POSIX compliant <utmpx.h>.			2013-07-30
+2.7.27	ADDED ADH TLS negotiation for qmail-remote.
+	FIXED domain evaluation for tlsdestinations.
+	FIXED hostname evaluation for cert validation.
+	CHNGD qmail-smtpd's MAXRECIPIENTS for all.	2013-08-19
+2.7.28	FXIED qmail-smtpd crash after spam/virus
+	detection via qmail-queue.scan.
+	ADDED host name in tls_error output.
+	CHNGD qmail-queue.scan to version 0.9.4.	2013-08-27
+2.7.28a FIXED some build errors and compiler hiccups.	2013-09-02
+	FIXED some qmail-remote doc bugs in man page.	2013-09-13

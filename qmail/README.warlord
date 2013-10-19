@@ -1,0 +1,29 @@
+README (Warlord)
+================
+
+The Warlord patch is the successor of Russell Nelson's 
+and Charles Cazabon's "qmail-smtpd-viruscan-patch".
+It realizes a robust and efficient base64 scanning.
+
+Features:
+
+- The whole message is scanned for embedded base64 attachments.
+- The first characters of the identified attachments
+  are checked against the strings found in badmimetypes.cdb,
+  if the environment variable BADMIMETYPE is present.
+- Additionally, (on purpose) irregular build base64 attachments
+  containing white spaces can be rejected.
+- The whole content of all base64 attachments
+  are checked against arbitary strings provided in 
+  badloadertypes.cdb. In order to make the search efficient,
+  the required environment variable BADLOADERTYPE has
+  to be supplied with the first character of the content
+  of the badloadertypes.cdb.
+- Customized SMTP 554 reply messages can be defined and used 
+  via the environment variable REPLY554.
+
+By means of the programs qmail-badmimetype and qmail-badloadertype, 
+the databases can be modified by need on the fly.
+
+See man qmail-smtpd, qmail-control, qmail-badmimetypes, 
+and qmail-badloadertypes.

@@ -1,0 +1,158 @@
+GENERAL
+-------
+
+1. The included script install_spamcontrol.sh does most of the job (installation + uninstallation).
+2. The script install_spamcontrol.sh writes a log-file spamcontrol.log of it's actions.
+3. The software version VRF (Version.Release.Fixlevel) is part of the archive name, 
+   eg. spamcontrol-VRF.tgz. The dots are omitted.
+4. For the development history view HISTORY.spamcontrol.
+5. The setup of the logic is described in README_spamcontrol.html.
+
+
+DEPENDENCY on OpenSSL
+---------------------
+
+This software requires on OpenSSL => 0.9.8 (tls_remote.h).
+In case you are using an older version, edit tls_remote.h to adjust to your 
+version; otherwise the software will not compile.
+
+
+DEPENDENCY on AMD64/i386 Architecture
+-------------------------------------
+
+Since qmail uses ucspi-ssl's during run time, both SW packages need to be 
+installed with the same compiler and loader options:
+
+a) conf-cc -> Changes required for qmail
+b) conf-ld -> Include machine dependence (-m64 flag) 
+
+
+INSTALLATION of UCSPI-SSL + sslserver
+-------------------------------------
+
+1. UCSPI-SSL can be found at: http://www.fehcom.de/ipnet/ucspi-ssl.html
+   => If you use a version prior to ucspi-ssl-0.80 you need to apply the attached patch.
+2. Follow the installation instructions; typically it's installed under /package/....
+
+
+TWEAKS for (Free)BSD
+--------------------
+
+a) Older (Free)BSD systems don't have a POSIX compliant utmpx.h and will fail
+compiling qbiff.c. Simply copy the old (unchanged) qbiff.c and recpompile. 
+b) FreeBSD 9.x did change the man command significantly while not
+using /etc/manpath.conf anymore.
+Do: 'echo "MANPATH /var/qmail/man" > /usr/local/etc/man.d/qmail.conf'.
+Now, you can access qmail's man pages again.
+
+
+CLANG (C-99) Compatibility
+------------------------------
+
+If you use the 'clang' compiler (FreeBSD/MacOS X) instead of the 'gcc' 
+you are required the change the call of 'void main( )' to 'int main( )'.
+The README_spamcontrol includes a script to do this in one step.
+
+In conf-cc and conf-ld change 'cc' to 'clang'. 
+
+
+INSTALLATION
+------------
+
+1. Copy all files to the Qmail 1.03 source directory.
+   (cd to qmail-1.03 and call tar -xzf DIR/spamcontrol-VRF_tgz.bin)
+2. Edit the configuration file conf-spamcontrol to your needs.
+3. Run ./install_spamcontrol.sh from the source directory.
+4. Verify the patches by means of the generated log-file spamcontrol.log.
+5. Re-Make Qmail (follow instructions in INSTALL and README.spamcontrol).
+6. Read man qmail-smtpd and man qmail-command for customization.
+
+
+SETUP
+-----
+
+0. Check the samples for run_send, run_smtpd, run_qmtpd, and run_log to 
+   setup your services under Daemontools. run_log is a generic script.
+1. If you use SMTP Authentication, modify your tcpserver/qmail start-up script
+  and in particular the call of qmail-smtpd:
+        /usr/local/bin/tcpserver <whatever your arguments are> smtp \
+        /var/qmail/bin/qmail-smtpd /bin/cmd5checkpw true 2>&1 
+   (Caution: 'true' has to be in your PATH!)
+2. If you employ 'softlimits', it might be necessary to raise that limit.
+3. Read man qmail-smtpd, man qmail-send, man qmail-remote and man qmail-command for customization.
+4. Useful badmimetypes and badloadertypes definitions are located in qmail's doc directory.
+5. To use SMTPAUTH, a PAM has to be available for user authentication;
+   read man qmail-smtpd. Further discussions can be found at: http://www.fehcom.de/qmail/smtpauth.html.
+   Set the environment variable SMTPAUTH="" to have LOGIN and PLAIN capabilites, 
+   SMTPAUTH="+cram" to allow for CRAM-MD5 authentication in addition.
+6. For TTLS you have to use sslserver (the patched version) instead of tcpserver.
+   Follow http://www.suspectclass.com/~sgifford/ucspi-tls/ to set the appropriate environment settings.
+7. The optional PAM for Recipients verification has to be checkpassword compatible.
+   The email address can be picked up from the first value in the string provided on FD 3.
+8. In case you want to log qmail-popup authentication results you have to cange
+   your qmail-pop3d run script to delegate additionally the output of FD5 to FD1: 2>&1 5>&1.
+
+
+VERIFICATION
+------------
+
+1. Verify the new man-pages:
+   - man qmail-control
+   - man qmail-smtpd
+   - man qmail-send
+   - man qmail-recipients
+   - man qmail-badmimetypes
+   - man qmail-badloadertypes
+   - man qmail-remote
+   - man qmail
+2. For your own records keep a copy of your Qmail configuration:
+   - /var/qmail/bin/qmail-showctl >> ~/qmail.config
+   - The new control files are included in this listing.
+   - qmail-showctl does neither perform a syntax nor a semantical check!
+
+
+CHANGING COMPILE TIME OPTIONS
+-----------------------------
+
+1. Modify the file conf-spamcontrol to your needs.
+2. Execute spamcontrol in un-installation mode; i.e.: ./install_spamcontrol.sh -u 207
+3. Re-install everything; ./install_spamcontrol.sh
+4. Re-Make Qmail.
+
+
+UNINSTALLATION
+--------------
+
+You can always use a fresh copy of the qmail-sources to re-install the original version.
+
+1. Change to the Qmail + SPAMCONTORL source directory.
+2. Run ./spamcontrol.sh -u from here (uninstallation mode). 
+3. Delete (if exisiting) the following files in /var/qmail/control:
+   - badrcptto
+   - badhelo
+   - maxrecipients
+   - bouncemaxbytes
+   - recipients
+   - authsenders
+   - domainips
+   - domaincerts
+   - tlsdestinations
+   This is optional. You can leave those files intact if you accept an error in qmail-showctl.
+4. Verify the uninstallation by means of the spamcontrol.log.
+5. With the current version of Spamcontrol you have to manually remove the subdirectories
+   under ./queue/todo/ and ./queue/intd/.
+6. Re-Make Qmail.
+
+
+UPGRADE
+-------
+
+1. Change to the Qmail + SPAMCONTROL source directory.
+2. Check the latest SPAMCONTROL Version Level by means of the spamcontrol.log file.
+3. Remove the patched Qmail files and go back to the originals:
+   ./install_spamcontrol.sh -u 105 (if the latest installed version was 1.0.5)
+4. Copy the new spamcontrol files to the Qmail 1.03 source directory.
+5. Run ./install_spamcontrol.sh in installation mode.
+6. Verify the patches by means of the generated log-file spamcontrol.log.
+7. Re-Make Qmail (follow instructions in INSTALL and README.spamcontrol).
+

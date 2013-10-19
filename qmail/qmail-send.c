@@ -43,6 +43,7 @@
 #define OSSIFIED 129600 /* 36 hours; _must_ exceed q-q's DEATH (24 hours) */
 
 int lifetime = 604800;
+int bouncemaxbytes = 0;
 
 stralloc percenthack = {0};
 struct constmap mappercenthack;
@@ -96,7 +97,7 @@ void fnmake_init()
 }
 
 void fnmake_info(id) unsigned long id; { fn.len = fmtqfn(fn.s,"info/",id,1); }
-void fnmake_todo(id) unsigned long id; { fn.len = fmtqfn(fn.s,"todo/",id,0); }
+void fnmake_todo(id) unsigned long id; { fn.len = fmtqfn(fn.s,"todo/",id,1); }
 void fnmake_mess(id) unsigned long id; { fn.len = fmtqfn(fn.s,"mess/",id,1); }
 void fnmake_foop(id) unsigned long id; { fn.len = fmtqfn(fn.s,"foop/",id,0); }
 void fnmake_split(id) unsigned long id; { fn.len = fmtqfn(fn.s,"",id,1); }
@@ -683,6 +684,8 @@ unsigned long id;
   }
  if (str_equal(sender.s,"#@[]"))
    log3("triple bounce: discarding ",fn2.s,"\n");
+ else if (!*sender.s && *doublebounceto.s == '@') 
+   log3("double bounce: discarding ",fn2.s,"\n");
  else
   {
    if (qmail_open(&qqt) == -1)
@@ -740,9 +743,25 @@ I tried to deliver a bounce message to this address, but the bounce bounced!\n\
      qmail_fail(&qqt);
    else
     {
-     substdio_fdbuf(&ssread,read,fd,inbuf,sizeof(inbuf));
-     while ((r = substdio_get(&ssread,buf,sizeof(buf))) > 0)
-       qmail_put(&qqt,buf,r);
+     if (bouncemaxbytes)
+      {
+       int bytestogo = bouncemaxbytes;
+       int bytestoget = (bytestogo < sizeof buf) ? bytestogo : sizeof buf;
+       substdio_fdbuf(&ssread,read,fd,inbuf,sizeof(inbuf));
+       while (bytestoget > 0 && (r = substdio_get(&ssread,buf,bytestoget)) > 0) {
+         qmail_put(&qqt,buf,r);
+         bytestogo -= bytestoget;
+         bytestoget = (bytestogo < sizeof buf) ? bytestogo : sizeof buf;
+       }
+       if (r > 0) 
+         qmail_puts(&qqt,"\n\n--- Rest of message truncated.\n");
+       }
+     else                       /* preserve default behavior */
+      {
+       substdio_fdbuf(&ssread,read,fd,inbuf,sizeof(inbuf));
+       while ((r = substdio_get(&ssread,buf,sizeof(buf))) > 0)
+         qmail_put(&qqt,buf,r);
+      }
      close(fd);
      if (r == -1)
        qmail_fail(&qqt);
@@ -1216,7 +1235,8 @@ void pass_do()
 /* this file is too long ---------------------------------------------- TODO */
 
 datetime_sec nexttodorun;
-DIR *tododir; /* if 0, have to opendir again */
+int flagtododir = 0; /* if 0, have to readsubdir_init again */
+readsubdir todosubdir;
 stralloc todoline = {0};
 char todobuf[SUBSTDIO_INSIZE];
 char todobufinfo[512];
@@ -1224,7 +1244,7 @@ char todobufchan[CHANNELS][1024];
 
 void todo_init()
 {
- tododir = 0;
+ flagtododir = 0;
  nexttodorun = now();
  trigger_set();
 }
@@ -1236,7 +1256,7 @@ datetime_sec *wakeup;
 {
  if (flagexitasap) return;
  trigger_selprep(nfds,rfds);
- if (tododir) *wakeup = 0;
+ if (flagtododir) *wakeup = 0;
  if (*wakeup > nexttodorun) *wakeup = nexttodorun;
 }
 
@@ -1253,8 +1273,7 @@ fd_set *rfds;
  char ch;
  int match;
  unsigned long id;
- unsigned int len;
- direntry *d;
+ int z;
  int c;
  unsigned long uid;
  unsigned long pid;
@@ -1265,32 +1284,28 @@ fd_set *rfds;
 
  if (flagexitasap) return;
 
- if (!tododir)
+ if (!flagtododir)
   {
    if (!trigger_pulled(rfds))
-     if (recent < nexttodorun)
-       return;
+     {
+       if (recent < nexttodorun)
+         return;
+     }
    trigger_set();
-   tododir = opendir("todo");
-   if (!tododir)
-    {
-     pausedir("todo");
-     return;
-    }
+   readsubdir_init(&todosubdir, "todo", pausedir);
+   flagtododir = 1;
    nexttodorun = recent + SLEEP_TODO;
   }
 
- d = readdir(tododir);
- if (!d)
+ switch(readsubdir_next(&todosubdir, &id))
   {
-   closedir(tododir);
-   tododir = 0;
-   return;
+    case 1:
+      break;
+    case 0:
+      flagtododir = 0;
+    default:
+      return;
   }
- if (str_equal(d->d_name,".")) return;
- if (str_equal(d->d_name,"..")) return;
- len = scan_ulong(d->d_name,&id);
- if (!len || d->d_name[len]) return;
 
  fnmake_todo(id);
 
@@ -1448,6 +1463,7 @@ int getcontrols() { if (control_init() == -1) return 0;
  if (control_rldef(&envnoathost,"control/envnoathost",1,"envnoathost") != 1) return 0;
  if (control_rldef(&bouncefrom,"control/bouncefrom",0,"MAILER-DAEMON") != 1) return 0;
  if (control_rldef(&bouncehost,"control/bouncehost",1,"bouncehost") != 1) return 0;
+ if (control_readint(&bouncemaxbytes,"control/bouncemaxbytes") == -1) return 0;   
  if (control_rldef(&doublebouncehost,"control/doublebouncehost",1,"doublebouncehost") != 1) return 0;
  if (control_rldef(&doublebounceto,"control/doublebounceto",0,"postmaster") != 1) return 0;
  if (!stralloc_cats(&doublebounceto,"@")) return 0;
@@ -1478,6 +1494,14 @@ void regetcontrols()
 
  if (control_readfile(&newlocals,"control/locals",1) != 1)
   { log1("alert: unable to reread control/locals\n"); return; }
+ if (control_readint(&concurrency[0],"control/concurrencylocal") == -1)
+  { log1("alert: unable to reread control/concurrencylocal\n",0); return; }
+ if (control_readint(&concurrency[1],"control/concurrencyremote") == -1)
+  { log1("alert: unable to reread control/concurrencyremote\n",0); return; }
+ if (control_readint(&lifetime,"control/queuelifetime") == -1)
+  { log1("alert: unable to reread control/queuelifetime\n",0); return; }
+  r = control_readfile(&newvdoms,"control/virtualdomains",0);
+  r = control_readfile(&newvdoms,"control/virtualdomains",0);
  r = control_readfile(&newvdoms,"control/virtualdomains",0);
  if (r == -1)
   { log1("alert: unable to reread control/virtualdomains\n"); return; }
@@ -1512,7 +1536,7 @@ void reread()
   }
 }
 
-void main()
+int main()
 {
  int fd;
  datetime_sec wakeup;

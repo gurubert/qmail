@@ -6,6 +6,7 @@
 #include "fmt.h"
 #include "env.h"
 #include "sig.h"
+#include "exit.h"
 #include "rcpthosts.h"
 #include "auto_qmail.h"
 #include "readwrite.h"
@@ -45,6 +46,7 @@ unsigned long getlen()
   for (;;) {
     substdio_get(&ssin,&ch,1);
     if (ch == ':') return len;
+    if (ch < '0' || ch > '9') resources();
     if (len > 200000000) resources();
     len = 10 * len + (ch - '0');
   }
@@ -130,7 +132,7 @@ main()
     else if (ch == 13) flagdos = 1;
     else badproto();
  
-    received(&qq,"QMTP",local,remoteip,remotehost,remoteinfo,(char *) 0);
+    received(&qq,"QMTP",local,remoteip,remotehost,remoteinfo,(char *) 0,(char *) 0);
  
     /* XXX: check for loops? only if len is big? */
  
@@ -193,6 +195,7 @@ main()
         substdio_get(&ssin,&ch,1);
         --biglen;
         if (ch == ':') break;
+        if (ch < '0' || ch > '9') resources();
         if (len > 200000000) resources();
         len = 10 * len + (ch - '0');
       }

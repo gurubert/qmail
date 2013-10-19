@@ -1,1 +1,5 @@
-This branch contains the vanilla qmail-1.03 sources
+This branch contains the SPAMCONTROL patch.
+
+http://fehcom.de/qmail/spamcontrol.html
+
+SPAMCONTROL is a qmail extension. Though mainly used to filter and control unsolicited commercial E-Mails (UCE/SPAM), since release 2 it includes substantial ESMTP protocol enhancements for qmail.

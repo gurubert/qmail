@@ -1,0 +1,4 @@
+#!/bin/sh
+LANG=C
+QMAIL=/var/qmail
+grep "^=" $QMAIL/users/assign | awk -F: '{print $1"@localhost"}' | cut -c2- | sort -u >> $QMAIL/users/recipients

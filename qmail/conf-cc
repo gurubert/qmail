@@ -1,3 +1,10 @@
-cc -O2
+cc -O2  -include /usr/include/errno.h -fno-strict-aliasing -pipe -g
 
+This will work for both i386 and AMD64 architecture.
+
+cc -O2 -include /usr/include/errno.h 
+
+Recommended by DJB for i386/Linux instead of
+
+cc -O2
 This will be used to compile .c files.

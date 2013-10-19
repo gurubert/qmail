@@ -12,6 +12,10 @@ int \fBcase_diffs\fP(\fIs\fR,\fIt\fR);
 .br
 int \fBcase_equals\fP(\fIs\fR,\fIt\fR);
 .br
+int \fBcase_diffrs\fP(\fIs\fR,\fIt\fR);
+.br
+int \fBcase_equalrs\fP(\fIs\fR,\fIt\fR);
+.br
 int \fBcase_starts\fP(\fIs\fR,\fIt\fR);
 
 int \fBcase_diffb\fP(\fIs\fR,\fIlen\fR,\fIt\fR);
@@ -53,6 +57,11 @@ must be 0-terminated.
 .B case_equals
 means
 .BR !case_diffs .
+
+.B case_diffrs
+and
+.B case_equalrs 
+compare strings from right to left instead from left to right. 
 
 .B case_starts
 returns 1 if a lowercase version of

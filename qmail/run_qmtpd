@@ -1,0 +1,11 @@
+#!/bin/bash
+CONCURRENCY=`cat /var/qmail/control/concurrencyincoming | head -n1`
+HOSTNAME=`hostname`
+QMAILD=`id -u qmaild`
+QMAILG=`id -g qmaild`
+exec /usr/local/bin/tcpserver \
+    -v -c $CONCURRENCY -H -R -l $HOSTNAME \
+    -x /var/qmail/etc/rules.qmtpd.cdb \
+    -u $QMAILD -g $QMAILG \
+    0 qmtp \
+    /var/qmail/bin/qmail-qmtpd 2>&1

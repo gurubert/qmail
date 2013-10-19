@@ -1,0 +1,6 @@
+# Configuration for SPAMCONTROL (no tabs allowed)
+#
+# Additional CONTROLLING
+#
+verp=yes # allow VERP addresses for RECIPIENTS
+pam111421=yes # otherwise qmail-smtpd will allow the email in case of PAM failures.

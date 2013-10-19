@@ -51,9 +51,12 @@ If
 .B qmail-send
 receives a HUP signal,
 it will reread
-.I locals
+.IR locals ,
+.IR virtualdomains ,
+as well as
+.IR concurrencylocal 
 and
-.IR virtualdomains .
+.IR concurrencyremote .
 .TP 5
 .I bouncefrom
 Bounce username.
@@ -76,6 +79,11 @@ notice back to the message's envelope sender.
 The notice is
 .B From: \fIbouncefrom\fB@\fIbouncehost\fR,
 although its envelope sender is empty.
+.TP 5
+.I bouncemaxbytes
+Maximum size (in bytes) of bounce messages.
+Bounce messages exceeding this limit will be truncated.
+Default is 0; which means no limit.
 .TP 5
 .I concurrencylocal
 Maximum number of simultaneous local delivery attempts.
@@ -115,6 +123,11 @@ notice to
 (If that bounces,
 .B qmail-send
 gives up.)
+As a special case, if the first line of
+.IR doublebounceto
+contains a '@' or an empty line
+.B qmail-send 
+will discard all double-bounces.
 .TP 5
 .I envnoathost
 Presumed domain name for addresses without @ signs.

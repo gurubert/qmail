@@ -1,0 +1,133 @@
+Release Notes SPAMCONTROL 2.4
+=============================
+
+FEATURES
+--------
+
+SPAMCONTROL is an extension to qmail.
+
+Enhancements for qmail-smtpd:
+
+* ESMTP enhancements
+- Strict RFC 2821 conformance.
+- Reference 'Mail From:' parameter parser, supporting SIZE (RFC 1870) and AUTH options.
+- Customizable SMTP Authentication (RFC 2554) support for LOGIN, PLAIN, and CRAM-MD5. #)
+- Optional STARTTLS (RFC 2487) support in conjunction with sslserver. +)
+
+* SMTP envelope Anti-Spam-Tools
+- Wildmat Filters for the HELO/EHLO greeting and the 
+  'Mail From: <Return-Path>' in Split-Horizon fashion. #)
+- DNS Lookup for the HELO/EHLO greeting (A/MX) and the domain part of the 'Mail From:' (MX).
+- Customizable HELO/EHLO greeting checks.
+- Tarpitting and Smart Rejection in case of too many invalid Recipients.
+
+* Mail From: Address Verification +#)
+- Check, whether for Relayclients the domain part of <Return-Path> corresponds 
+  to a local address (Reverse Split-Horizon).
+- Full control of outgoing Mail From: SMTP envelope addresses
+  in case of a SMTP authenticated user. +)
+
+* Enhanced badmailfrom support
+- Wildmat filter.
+- Additional 'badmailfromunknown' capabilities. #)
+- Anti-spoofing of own addresses. #)
+
+* Recipients extensions
+- badrcptto wildmat filter.
+- Restricting the number of allowed 'Rcpt To:' per SMTP session.
+- Whitelisting: Controlling the reception of mails not only on a 
+  rcpthosts base but rather on the complete <Forwarding-Path> with fast and 
+  extensible cdb-lookup, domain-wildlisting and VERP support.
+- Customizable 550 or 450 return messages. #)
+
+* Virus prevention
+- Reference badmimetypes implementation.
+- Additional badloadertypes filter.
+- Qmail High Performance Scanner Interface (QHPSI).
+- Customizable SMTP 554 Reply Message.
+
+* qmail-smtpd logging
+- Extensible logging format.
+- Logging for failed and accepted SMTP sessions.
+
+
+Enhancements for qmail-remote:
+
+* SMTP Authentication
+- Supported are Auth types LOGIN and PLAIN.
+- Additional authsenders control file.
+
+* Fast delivery 
+- Delivery to any DNS listed MX for that domain instead just the primary. +)
+- Increased read buffer for delivery. +)
+
+
+Enhancements for qmail-pop3d:
+
+* STLS support +)
+
+
+Limitations:
+
+* As by today, some SSL envrionment variables are not 
+  made available by sslserver.
+
+
+Enhancements for qmail-queue:
+
+* High speed virus scanner by means of QHPSI.
+* Additional QMAILQUEUE usage.
+* Optional BIGTODO support.
+
+
+Enhancements for qmail-send:
+
+* Bounce control
+- Restricting the size of bounces.
+- Doublebouncetrim.
+
+* Additional recognition of local IP addresses
+- Moreipme
+- Notipme
+
+
+External enhancements:
+
+* Seemless support for djbdns lib instead dnslib.
+* qmail-mrtg interface.
+* Newanalyse for logs.
+
+
+With SPAMCONTROL qmail-smtpd can stand the two most common threats:
+
+* Lexical and/or dictionary Spam attacks in particular to none-existing <Forwarding-Path> 
+  and the subsequent generation of bounce messages to none-existing <Return-Path>.
+* Virus Bombing and resource exhaustion due to the Virus Scanners.
+
+With SPAMCONTROL you can guarantee the integrity and authentication of at least
+
+* the domain part of the provided 'Mail From:" SMTP envelop address for RELAYCLIENTS
+* even chained over serveral Qmail instances.
+
+
+CHANGES (2.3 -> 2.4)
+--------------------
+
+Userland:
+#) Modified syntax in 'badmailfrom'.
+#) SMTP Auth now customizable via environment variable 'SMTPAUTH'.
++) Added optional STARTTLS feature (environment variable 'UCSPITLS').
++) Included TLS support for qmail-pop3d.
++) Added Mail Adress From: Verification (MAV) with customizable reply message.
+#) Customizable RECIPIENT return code (450/550); default is now 550.
+
+Internal:
++) Included hook for sslserver; flexible SMTP EHLO message.
++) Added information about TLS state in Received Header.
++  Added 'protocol' information for qmail-smtpd in logs.
++) Added qmail-remote fast-delivery.
+-) Removed QUITASAP.
+-) Removed error.h patch in favour of compiler option.
+
+
+Erwin Hoffmann, Cologne 2006-08-11

@@ -1,0 +1,162 @@
+RELEASE NOTES SPAMCONTROL 2.6
+=============================
+
+FEATURES
+--------
+
+SPAMCONTROL is an extension to qmail.
+
+Enhancements for qmail-smtpd:
+
+* ESMTP enhancements
+- Strict RFC 2821 conformance.
+- Reference 'Mail From:' parameter parser, supporting SIZE (RFC 1870) and AUTH options.
+- Customizable SMTP Authentication (RFC 2554) support for LOGIN, PLAIN, and CRAM-MD5.
+- SMTP Auth SUBMISSION feature.
+- Optional STARTTLS (RFC 2487) support in conjunction with sslserver.
+
+* SMTP envelope Anti-Spam-Tools
+- Wildmat Filters for the HELO/EHLO greeting and the 
+  'Mail From: <Return-Path>' in Split-Horizon fashion.
+- DNS Lookup for the HELO/EHLO greeting (A/MX) and the domain part of the 'Mail From:' (MX).
+- Customizable HELO/EHLO greeting checks including exceptions. #)
+- Greetdelay, Tarpitting, and Smart Rejection in case of too many invalid Recipients. 
+
+* Mail From: Address Verification
+- Check, whether for Relayclients the domain part of <Return-Path> corresponds 
+  to a local address (Reverse Split-Horizon).
+- Full control of outgoing Mail From: SMTP envelope addresses
+  in case of a SMTP authenticated user.
+
+* Enhanced badmailfrom support
+- Wildmat filter.
+- 'badmailfromunknown' capabilities. 
+- 'badmailfromwellknown' capabilities. 
+- Anti-spoofing of own addresses. 
+
+* Recipients extensions 
+- badrcptto wildmat filter.
+- Restricting the number of allowed 'Rcpt To:' per SMTP session.
+- Whitelisting: Controlling the reception of mails not only on a 
+  rcpthosts base but rather on the complete <Forwarding-Path> with fast and 
+  extensible cdb/PAM lookup, domain-wildlisting and VERP support.
+- Customizable 550 or 450 return messages. 
+
+* Virus prevention
+- Reference badmimetypes implementation.
+- Improved badloadertypes filter.
+- Qmail High Performance Scanner Interface (QHPSI).
+- Customizable SMTP 554 Reply Message.
+
+* qmail-smtpd logging
+- Extensible logging format.
+- Logging for failed and accepted SMTP sessions.
+
+* SMTP envelope information available for external programs.
+* Customizable SMTP Reply codes.
+
+
+Enhancements for qmail-remote:
+
+* STARTTLS and SMTPS support +)
+- Extensible peer validation/verification. 
+- Sending domain based X.509 cert presentation.
+
+* Domain-based binding to IP address +)
+
+* SMTP Authentication
+- Supported are Auth types LOGIN and PLAIN.
+- Additional authsenders control file.
+
+* QMTP support
+- Additional qmtproutes control file in addition to smtproutes.
+
+* Fast delivery 
+- Delivery to any DNS listed MX for that domain instead just the primary.
+- Increased read buffer for delivery.
+
+* Bounce host support
+- Forward qmail-send bounces to dedicated QMTP hosts.
+- Forward qmail-send bounces to dedicated SMTP hosts.
+
+
+Enhancements for qmail-pop3d:
+
+* STLS support
+
+
+Enhancements for qmail-queue:
+
+* High speed virus scanner by means of QHPSI.
+* Additional QMAILQUEUE usage.
+* Optional BIGTODO support.
+* Optional use of RC=33 for spam messages detected via qmail-queue replacement.
+
+
+Enhancements for qmail-send:
+
+* Bounce control
+- Restricting the size of bounces.
+- Doublebouncetrim.
+
+* Additional recognition of local IP addresses
+- Moreipme
+- Notipme
+
+
+External enhancements:
+
+* Seemless support for djbdns lib instead dnslib.
+* qmail-mrtg interface.
+* Newanalyse for logs.
+* rblsmtpd patch can be downloaded in addition.
+
+
+With SPAMCONTROL qmail-smtpd can stand the two most common threats:
+
+* Lexical and/or dictionary Spam attacks in particular to none-existing <Forwarding-Path> 
+  and the subsequent generation of bounce messages to none-existing <Return-Path>.
+* Virus Bombing and resource exhaustion due to the Virus Scanners.
+
+With SPAMCONTROL you can guarantee the integrity and authentication of at least
+
+* the domain part of the provided 'Mail From:" SMTP envelop address for RELAYCLIENTS
+* even chained over serveral Qmail instances.
+
+With SPAMCONTROL qmail-remote allows
+
+* to dedicate email traffic to particular accounts/domains via QMTP handled by specific qmail instances
+* to decouple queuing of bounces from regular emails to a dedicated qmail instance or bounce host
+* to send TLS encrypted mails to qualified SMTP servers.
+
+
+CHANGES (2.5 -> 2.6)
+--------------------
+
+Userland:
++) Added STARTTLS/SMTPS support for qmail-remote with additional control files domaincerts and tlspeerhosts.
++) Added binding to arbitrary IP addresses based on the domain part of the sender for qmail-remote (domainips).
++) Added UCSPI-SSL 0.80 to support TLS capabilities.
++) Set of environment variable for SMTP Reply messages.
++) Added 'pass-thru' extended address in badmailfrom by means of a trailing '?'.
+
+Internal:
+#) Aligned with qmail-authentication 0.6.10.
++) Installation script improved.
+*) Conformance with RFC 5321 ('Too Many Recipients Code' 452).
+
+
+EXPERIMENTAL ADD-ONS
+--------------------
+
+Some features in SPAMCONTROL 2.6 shall still be considered as 'experimental' only.
+
+QMQ:
+
+The Qmail Multiple Queue feature can be used, but the skeletons to raise 
+the individual instances' subdirectories and a corresponding setup-script 
+is still incomplete/missing. 
+
+
+
+Erwin Hoffmann, Cologne 2010-04-03.

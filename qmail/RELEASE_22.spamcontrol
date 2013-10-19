@@ -1,0 +1,90 @@
+Release Notes - SPAMCONTROL 2.1 (Warlord edition)
+=================================================
+
+These release notes have been conducted
+to guide potential users upgrading from
+SPAMCONTROL 2.0 to 2.2.
+
+
+New Features:
+-------------
+
+* SPAMCONTROL includes now the 'qmail-smtpd-viruscan-1.1.patch'
+  from Russell Nelson and Charles Cazabon in a modified version.
+* Filtering of 'badmimetypes' is faciliated by either the
+  environment variable $BADMIMETYPE and/or the control file
+  'badmimetypes.cdb'.
+* This cdb is generated from the file 'badmimetypes'
+  with the included executable 'qmail-newbmt' (man qmail-newbmt). 
+* Additionally, SPAMCONTROL allows now a Whitelisting for
+  (local) recipients. SMTP recipients (with full qualified address)
+  may reside in serveral cdbs which are available through the
+  new control file control/recipients. The cdbs can be created
+  with program 'qmail-recipients' and are 'fastforward' compatible.
+
+
+Bugs fixed/Compatibility issues:
+--------------------------------
+
+* The SMTP Auth implementation as been revised and conforms
+  now to the 'checkpassword' interface, even for CRAM-MD5.
+* Thus, you have to upgrade to 'cmd5checkpw' version 0.30 or
+  any other 'checkpassword' compatible PAM.
+* As with SPAMCONTROL 2.0, I omitted the additional 'hostname'
+  parameter in the call of the PAM; this caused more Open
+  Relays then other configuration failures.
+* The 'SINGLEQUOTES' in SMTP envelope addresses should
+  work now. Thus, Mail From: <"tim.o'reilly@oreilly.com">
+  is correctly interpreted, als well as <'foo@bar.com'>.
+* Trailing blanks in Mail From: <return-path > can be optionally
+  removed for DNS MX lookups.
+* The SMTP Replies issued, are in accordance with RFC 2821.
+* The EMSSC have been reworked to adjust to RFC 1893.
+* SMTP addresses can be enforced to be sandwiched
+  in brackets (required by RFC 2821).
+
+
+Userland Changes/Control files:
+-------------------------------
+
+* The 'badmailpatterns' has been removed and the function 
+  merged into 'badmailfrom'.
+* The 'badrcptpatterns' has been removed and the function 
+  merged into 'badrcptto'.
+* The 'nomfdnscheck' control file has been removed.
+* The 'maxrecipient' control file has been removed.
+* SMTP Authentication yields a 'privileged' state (man qmail-smtpd).
+* The environment variable 'NULLSENDERMULTRCPTS' has been removed.
+* The environment variable 'BADMIMETYPE' can not be longer used
+  to carry specific 'badmimetypes'.
+
+
+Administration/Logging:
+-----------------------
+
+* The log format of qmail-smtpd has been changed;
+  now a extensible log format is provided, 
+  interfacing cleanly with 'tcpserver'/'multilog'.
+* For admins still using 'splogger' a 'qmail-smtpd'
+  prepend can be added. 
+* A complete log of all qmail-smtpd sessions can be written.
+
+
+Documentation/Man pages:
+------------------------
+
+* The included documentation has been updated to
+  reflect correctly the changes.
+* The man pages have been updated and improved.
+
+
+Co-Requirements:
+----------------
+
+* For SMTP Authentication using CRAM-MD5,
+  you have to upgrade to cmd5checkpw version 0.30.
+* It might be necessary to enlarge the softlimit
+  settings on your system running qmail-smtpd.
+
+
+Erwin Hoffmann (www.fehcom.de), Cologne 2003-12-16 

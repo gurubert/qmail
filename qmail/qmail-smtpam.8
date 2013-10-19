@@ -1,0 +1,58 @@
+.TH qmail-smtpam 8
+.SH NAME
+qmail-smtpam \- SMTP client PAM
+.SH SYNOPSIS
+.B qmail-smtpam
+.I host
+.I port
+.SH DESCRIPTION
+.B qmail-smtpam
+reads an email address from FD 3
+and tries to verify this 
+connecting to the remote
+.IR host 
+on 
+.IR port .
+In a standard SMTP dialog,
+.B qmail-smtpam
+supplies the HELO greeting,
+a MAIL FROM: <> address, and
+the purported RCPT TO: <address>.
+.PP
+.B qmail-smtpam
+exits '0' if the remote server
+replies with '250', otherwise '1'.
+In case the control files can not
+be read or a communication problem has
+occured, it exits '111'.
+
+.SH "CONTROL FILES"
+.TP 5
+.I helohost
+Current host name,
+for use solely in saying hello to the remote SMTP server.
+Default:
+.IR me ,
+if that is supplied;
+otherwise
+.B qmail-smtpam
+refuses to run.
+.TP 5
+.I timeoutconnect
+Number of seconds
+.B qmail-smtpam
+will wait for the remote SMTP server to accept a connection.
+Default: 60.
+The kernel normally imposes a 75-second upper limit.
+.TP 5
+.I timeoutremote
+Number of seconds
+.B qmail-smtpam
+will wait for each response from the remote SMTP server.
+Default: 1200.
+
+.SH "SEE ALSO"
+addresses(5),
+envelopes(5),
+qmail-control(5),
+qmail-smtpd(8),

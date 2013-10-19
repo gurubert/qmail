@@ -16,6 +16,9 @@
 #include "auto_uids.h"
 #include "date822fmt.h"
 #include "fmtqfn.h"
+#include "env.h"
+#include "fork.h"
+#include "wait.h"
 
 #define DEATH 86400 /* 24 hours; _must_ be below q-s's OSSIFIED (36 hours) */
 #define ADDR 1003
@@ -55,6 +58,7 @@ void cleanup()
 }
 
 void die(e) int e; { _exit(e); }
+void die_qhpsi() { cleanup(); die(71); }
 void die_write() { cleanup(); die(53); }
 void die_read() { cleanup(); die(54); }
 void sigalrm() { /* thou shalt not clean up here */ die(52); }
@@ -149,9 +153,62 @@ void pidopen()
  die(63);
 }
 
+char *qhpsi;
+
+void qhpsiprog(arg) char *arg;
+{
+ int wstat;
+ int child;
+ char *qhpsiargs[6] = { 0, 0, 0, 0, 0, 0 };
+ char *x;
+ unsigned long u; 
+ int childrc; 
+ int qhpsirc = 1;
+ unsigned int size;
+ unsigned int qhpsiminsize = 0;
+ unsigned int qhpsimaxsize = 0;
+
+ struct stat st;
+
+ if (stat(messfn,&st) == -1) die(63);
+ size = (unsigned int) st.st_size;
+
+ x = env_get("QHPSIMINSIZE");
+ if (x) { scan_ulong(x,&u); qhpsiminsize = (int) u; }
+ if (qhpsiminsize) if (size < qhpsiminsize) return;
+ x = env_get("QHPSIMAXSIZE");
+ if (x) { scan_ulong(x,&u); qhpsimaxsize = (int) u; }
+ if (qhpsimaxsize) if (size > qhpsimaxsize) return; 
+
+ if (*arg) {
+   switch(child = fork()) {
+     case -1:
+       die_qhpsi();
+     case 0:
+       qhpsiargs[0] = arg; 
+       qhpsiargs[1] = messfn;
+       qhpsiargs[2] = env_get("QHPSIARG1");
+       if(!qhpsiargs[2]) qhpsiargs[2] = 0; 
+       qhpsiargs[3] = env_get("QHPSIARG2");
+       if(!qhpsiargs[3]) qhpsiargs[3] = 0; 
+       qhpsiargs[4] = env_get("QHPSIARG3");
+       if(!qhpsiargs[4]) qhpsiargs[4] = 0; 
+       x = env_get("QHPSIRC");
+       if (x) { scan_ulong(x,&u); qhpsirc = (int) u; }
+       execvp(*qhpsiargs,qhpsiargs);
+       die_qhpsi();
+   }
+   if (wait_pid(&wstat,child) == -1) die_qhpsi();
+   if (wait_crashed(wstat)) die_qhpsi();
+   childrc = wait_exitcode(wstat); 
+   if (childrc == qhpsirc) { cleanup(); die(32); }
+   else if (childrc != 0) die_qhpsi(); 
+  }
+}
+
 char tmp[FMT_ULONG];
 
-void main()
+int main()
 {
  unsigned int len;
  char ch;
@@ -165,6 +222,7 @@ void main()
  uid = getuid();
  starttime = now();
  datetime_tai(&dt,starttime);
+ qhpsi = env_get("QHPSI");
 
  received_setup();
 
@@ -180,8 +238,8 @@ void main()
 
  messnum = pidst.st_ino;
  messfn = fnnum("mess/",1);
- todofn = fnnum("todo/",0);
- intdfn = fnnum("intd/",0);
+ todofn = fnnum("todo/",1);
+ intdfn = fnnum("intd/",1);
 
  if (link(pidfn,messfn) == -1) die(64);
  if (unlink(pidfn) == -1) die(63);
@@ -233,6 +291,7 @@ void main()
   {
    if (substdio_get(&ssin,&ch,1) < 1) die_read();
    if (!ch) break;
+   if (ch == 'Q') { qhpsi = 0; break; }
    if (ch != 'T') die(91);
    if (substdio_bput(&ssout,&ch,1) == -1) die_write();
    for (len = 0;len < ADDR;++len)
@@ -243,6 +302,8 @@ void main()
     }
    if (len >= ADDR) die(11);
   }
+
+ if (qhpsi) qhpsiprog(qhpsi);
 
  if (substdio_flush(&ssout) == -1) die_write();
  if (fsync(intdfd) == -1) die_write();

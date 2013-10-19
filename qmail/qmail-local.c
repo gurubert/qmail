@@ -444,7 +444,7 @@ int len;
  substdio_putsflush(subfdoutsmall,"\n");
 }
 
-void main(argc,argv)
+int main(argc,argv)
 int argc;
 char **argv;
 {
@@ -645,7 +645,8 @@ char **argv;
     {
      cmds.s[j] = 0;
      k = j;
-     while ((k > i) && (cmds.s[k - 1] == ' ') || (cmds.s[k - 1] == '\t'))
+     /* Recommended patch contributed by Matthias Andree <matthias.andree@gmx.de> */
+     while ((k > i) && ((cmds.s[k - 1] == ' ') || (cmds.s[k - 1] == '\t'))) 
        cmds.s[--k] = 0;
      switch(cmds.s[i])
       {

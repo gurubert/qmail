@@ -1,0 +1,3934 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+	<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+	<meta name="generator" content="Bluefish 2.2.2" >
+	<title>README SPAMCONTROL</title></head>
+<body>
+
+<h1>README_SPAMCONTROL (2.7)</h1>
+
+<P><A HREF="#Objectives">Objectives</A></P>
+<ul>
+	<li><P><A HREF="#Conventions">0. Conventions</A></P></li>
+	<li><P><A HREF="#Qmail-smtpd">1. qmail-smtpd Extensions</A></P></li>
+	<li><P><A HREF="#Envelope">2. qmail-smtpd SMTP Envelope Filters</A></P></li>
+	<li><P><A HREF="#Recipients">3. Recipients Extension</A></P></li>
+	<li><P><A HREF="#Message">4. Filtering E-Mails on behalf of the Message Content</A></P></li>
+	<li><P><A HREF="#Qmail-remote">5. qmail-remote Extensions</A></P></li>
+	<li><P><A HREF="#Qmail-pop3d">6. qmail-pop3d/qmail-popup</A></P></li>
+	<li><P><A HREF="#Qmail-send">7. qmail-send, qmail-queue, and the qmail's sendmail</A></P></li>
+	<li><P><A HREF="#Return-codes">8. SMTP Protocol Return Codes</A></P></li>
+	<li><P><A HREF="#Logging">9. qmail-smtpd Logging</A></P></li>
+	<li><P><A HREF="#Howto">10. Howto</A></P></li>
+	<li><P><A HREF="#Authors">11. Authors</A></P></li>
+	<li><P><A HREF="#Thanks">12. Thanks</A></P></li>
+</ul>
+
+<p>&nbsp;</p>
+<hr align="left">
+<p>&nbsp;</p>
+
+<h2><A NAME="Objectives">Objectives</h2>
+
+<p>SPAMCONTROL is an extension for <b>qmail</b>. It provides the following basic features:</p>
+
+<p><b><u>Enhancements for qmail-smtpd:</u></b></p>
+
+<ul>
+	<li>ESMTP enhancements
+	<ul>
+		<li>Strict RFC 2821 conformance. </li>
+		<li>Reference 'Mail From:' parameter parser, supporting SIZE
+			(RFC 1870) and AUTH options.    </li>
+		<li>Customizable SMTP Authentication (RFC 2554) support for LOGIN,
+			PLAIN, and CRAM-MD5.    </li>
+		<li>RFC 4409 "Message Submission for Mail" for <b>qmail-smtpd</b>.    </li>
+		<li>Flexible STARTTLS (RFC 2487) support in conjunction with
+    		<b>sslserver</b>+).    </li>
+		<li>Mail From Verification (MAV) allows relaying only of verified/authorized addresses.  </li>
+	</ul>
+	</li>
+	<li>SMTP envelope Anti-Spam-Tools
+  	<ul>
+		<li>Wildmat Filters for the HELO/EHLO greeting and the 'Mail
+    			From: &lt;Return-Path&gt;' in Split-Horizon fashion. </li>
+    		<li>DNS Lookup for the HELO/EHLO greeting (A/MX) and the domain
+    			part of the 'Mail From:' (MX). </li>
+    		<li>Customizable HELO/EHLO greeting checks.    </li>
+    		<li>Tarpitting and Smart Rejection in case of too many invalid Recipients.  </li>
+	</ul>
+	</li>
+	<li>Enhanced <u>badmailfrom</u> support
+	<ul>
+		<li>Wildmat filter.</li>
+		<li>Additional 'badmailfromunknown' capabilities.</li>
+		<li>Anti-spoofing of own addresses. </li>
+		<li>Anti-spoofing for 'badmailfromwellknown' (ie. Webmailer) hosts.  </li>
+	</ul>
+	</li>
+	<li>Recipients extensions
+	<ul>
+		<li><u>badrcptto</u> wildmat filter.</li>
+		<li>Restricting the number of allowed 'Rcpt To:' per SMTP session.</li>
+		<li>Flexible per domain Whitelisting: Controlling the reception
+			of mails not only on a <u>rcpthosts</u> base but rather on the
+			complete &lt;Forwarding-Path&gt;. </li>
+		<li>Features: Fast cdb-lookup, <b>checkpassword</b> compatible
+			PAM for LDAP and SMTP (qmail-smtpam) query, VERP support and wildlisting. </li>
+  		<li>Pass-Through for unlisted domains. </li>
+  		<li>Alternate 550 or 450 return messages. </li>
+  	</ul>
+	</li>
+	<li>Virus prevention
+	<ul>
+		<li>Reference <u>badmimetypes</u> implementation.</li>
+		<li>Additional <u>badloadertypes</u> filter. </li>
+		<li>Qmail High Performance Scanner Interface (QHPSI). </li>
+	</ul>
+  	</li>
+  	<li>Queue Plug-In
+	<ul>
+		<li>Optional support for Ramdisk and fast scanning.</li>
+		<li>Per-Domain scanning for Virus and/or Spam.</li>
+	</ul>
+  	</li>
+  	<li>Logging
+	<ul>
+    		<li>Extensible logging format. </li>
+    		<li>Logging for failed and accepted SMTP sessions. </li>
+  	</ul>
+	</li>
+	<li>SMTP envelope information available for external programs. </li>
+	<li>Customizable SMTP Reply messages.</li>
+</ul>
+
+<p><b><u>Enhancements for qmail-remote:</u></b></p>
+
+<ul>
+	<li>ESMTP enhancements
+	<ul>
+		<li>Optional STARTTLS support. +)
+		<ul>
+			<li>Extensible control of SMTP server validation/verification
+				via <u>tlsdestinations</u>.</li>
+			<li>Sending Domain based presentation of client certificate by
+				means of <u>domaincerts</u>.</li>
+			<li>Cone TLS support.</li>
+		</ul>
+   	</li>
+   	<li>SMTP Authentication
+	   	<ul>
+			<li>Supported are Auth types LOGIN, PLAIN, and CRAM-MD5 +).</li>
+			<li>Authentication based on <u>smtproutes</u>; alternatively</li>
+			<li>additional <u>authsenders</u> control file.	</li>
+		</ul>
+	</li>
+	</ul>
+	</li>
+	<li>QMTP support
+	<ul>
+    		<li><b>qmail-remote</b> can act as QMTP client.</li>
+    		<li>Additional <u>qmtproutes</u> can be provided which have precedence
+			    over <u>smtproutes</u>. </li>
+	</ul>
+	</li>
+  	<li>Additional delivery capabilities
+	<ul>
+    		<li>Domain-based binding to available IP addresses for delivery
+    			per <u>domainips</u>.</li>
+    		<li>Delivery to any DNS listed MX for that domain instead just the primary.</li>
+    		<li>Increased read buffer for delivery. </li>
+    	</ul>
+	</li>
+	<li>Bounce routes
+	<ul>
+   		 <li>Bounces can be re-directed by means to particular bounce  host.  </li>
+  	</ul>
+	</li>
+</ul>
+
+<p><b><u>Enhancements for qmail-pop3d:</u></b></p>
+
+<ul>
+	<li>STLS support</li>
+	<li>Logging for accepted and failed sessions.</li>
+</ul>
+
+<p><b><u>Enhancements for qmail-queue:</u></b></p>
+
+<ul>
+	<li>High speed virus scanner by means of QHPSI. </li>
+	<li>Additional QMAILQUEUE usage. </li>
+	<li>BIGTODO support.</li>
+</ul>
+
+<p><b><u>Enhancements for qmail-send:</u></b></p>
+
+<ul>
+	<li>Bounce control
+  	<ul>
+		<li>Restricting the size of bounces.</li>
+		<li>Doublebouncetrim.</li>
+	</ul>
+	</li>
+	<li> High process number support</li>
+	<ul>
+   		<li>Silent conf-spawn increased to 500.</li>
+   	</ul>
+	
+</ul>
+ 
+<p><b><u>SMTP Pluggable Authentication Modules</u></b></p>
+
+<p>Tow additional PAMs are now delivered with SPAMCONTROL:</p>
+
+<ul>
+	<li><b>qmail-smtpam</b>: A generic <b>qmail-remote</b> alike
+		SMTP PAM to provide verification against some backend mailservers.</li>
+	<li><b>LDAPAM</b>: A customizable PERL script to be
+		used for verification purposes against a LDAP server.</li>
+</ul>
+ 
+<p><b><u>Qmail Multiple Queue</u></b></p>
+
+<p>This version of SPAMCONTROL provides support for the <b><i>Qmail
+Multiple Queue</i></b> (<b><i>QMQ</i></b>):</p>
+
+<ul>
+	<li>Here, you set up serveral <b>qmail</b> instances and queues
+		decoupling the remote delivery ie. per domain and perhaps including
+		a separate <b><i>bounce queue</i></b>.</li>
+	<li>The communication amoung the queues is based on Bernstein's
+		<b><i>QMTP</i></b>.</li>
+	<li><b><i>QMQ</i></b> allows to specifiy and to guarantee delivery
+		times to particular domains (as part of the SLA) while eliminating
+		the '<i>silly qmail syndrom</i>' under heavy load conditions. </li>
+	<li>Setting up <b><i>QMQ</i></b> is site-specific and in particular
+		useful for ISPs and large companies and requires some qualified
+		analysis of the internal email-flow and perhaps additional consultancy.</li>
+</ul>
+
+<p>&nbsp;</p>
+
+<p>With SPAMCONTROL, <b>qmail-smtpd </b>can stand the two most common threats:</p>
+
+<ul>
+	<li>Lexical and/or dictionary Spam attacks in particular to none-existing
+		&lt;Forwarding-Path&gt; and the subsequent generation of bounce
+		messages to none-existing &lt;Return-Path&gt;.  </li>
+	<li>Virus Bombing and resource exhaustion due to Virus Scanners.</li>
+</ul>
+
+<p>Additionally, <b>qmail-smtpd</b> allows</p>
+
+<ul>
+	<li>positive verification and indication of authorized use of
+		the &lt;Return-Path&gt; ("<tt>Mail From:</tt>") for  Relayclients (MAV).</li>
+</ul>
+
+<p>&nbsp;</p>
+<hr align="left">
+<p>&nbsp;</p>
+
+<h2><A NAME="Conventions">0. Conventions</h2>
+
+<h3>0.1 Definitions</h3>
+
+<dl>
+  <dd>Sender = SMTP envelope sender (<tt>Mail From:</tt> &lt;Return-Path&gt;)<br>
+  Recipient = SMTP envelope recipient (<tt>Rcpt To:</tt> &lt;Forwarding-Path&gt;)<br>
+  Nullsender Mail = E-Mail with empty Sender (Mail From: &lt;&gt;)
+  </dd><dd>Full qualified SMTP E-Mail address: "user@domain.com"
+  (for Sender/Recipient)</dd>
+</dl>
+
+
+<h3>0.2 daemontools run scripts </h3>
+
+<p>Throughout this document, I assume that <b>qmail-smtpd </b>is
+under control of <b>supervise</b> (out of the Daemontools package)
+and served by <b>sslserver</b> (part of the UCSPI-SSL package) or
+<b>tcpserver</b> (part of the UCSPI-TCP package).</p>
+
+<p>Some skeletons for the <a href:"http://cr.yp.to/daemontools.html">daemontools </a>
+run-scripts are provided which are useful to set up the services:
+
+<ul>
+  <li><tt>run_log</tt> -- generic log script</li>
+  <li><tt>run_pop3d</tt> -- qmail-pop3d start script</li>
+  <li><tt>run_pop3sd</tt> -- qmail-pop3sd start script</li>
+  <li><tt>run_qmtpd</tt> -- qmail-qmtpd server start script </li>
+  <li><tt>run_send</tt> -- qmail-start script </li>
+  <li><tt>run_smtpd</tt> -- qmail-smtpd start script</li>
+  <li><tt>run_smtpsd</tt> -- qmail-smtpsd start script</li>
+  <li><tt>run_smtpsub</tt> -- qmail-smtpd submission service start script </li>
+</ul>
+
+<u>Note:</u> These scripts are suggestions and need to be customized
+for your needs.</p>
+
+<p>A typical - minimal - so called <tt>run</tt> script looks like follows:</p>
+
+<dl>
+  <dd><tt>#!/bin/sh<br>
+  # qmail-smtpd startup<br>
+  QMAILDUID=`id -u qmaild`<br>
+  QMAILDGID=`id -g qmaild`<br>
+  HOSTNAME=`hostname`<br>
+  exec tcpserver&nbsp;-R \<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-u $QMAILDUID -g $QMAILDGID
+  \<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-l $HOSTNAME 0 smtp \<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/var/qmail/bin/qmail-smtpd
+  2&gt;&amp;1</tt></dd>
+</dl>
+
+<h3>0.3 Environment Variables</h3>
+
+<p>Qmail - and SPAMCONTROL - relies on the concept of environment
+variables which are available for a task (sharing the same environment).
+<b>qmail-smtpd</b> may be fed by environment variables in three
+different fashions:</p>
+
+<ol>
+	<li>(Gobal) Exported variables in the <tt>run</tt> script; eg. <tt>export
+		RELAYCLIENT=""</tt>. </li>
+	<li>(Gobal) By means of the <b>envdir</b> facility as part of
+		the Daemontools package. </li>
+	<li>(Gobal) Using a "profile" configuration file called
+		in the <tt>run</tt> script by means of the "dot" syntax (. pofile).  </li>
+	<li>(Individual) Setting the appropriate variable in the <b>tcpserver</b>
+		cdb database.</li>
+</ol>
+
+<p>While the first three cases define static and "global"
+environments variables, the last case makes the environment variables
+client-dependent and - by means of <b>tcprules</b> - dynamically
+changeable. Any mixture is possible, though only the "last"
+setting of an environment variable is effective!</p>
+
+<h3>0.4 tcpserver/sslserver cdb</h3>
+
+<p>As a convention, I will call the <b>tcperver's</b> cdb, which
+rules the behaviour of <b>qmail-smtpd</b>, <tt>tcp.smtp</tt>. A
+typical<tt> tcp.smtp</tt> would look like</p>
+
+<dl>
+  <dd>
+	<tt>=mydomain.com:allow,RELAYCLIENT="",LOCALMFCHECK=""<br>
+	1.2.3.4:allow,RELAYCLIENT="",LOCALMFCHECK="otherdomain.com"<br>
+	5.6.7.8:allow,UCSPITLS="!"<br>
+	:allow,MFDNSCHECK="",BADMIMETYPE="",BADLOADERTYPE="M"</tt>
+	</dd>
+</dl>
+
+<p>The cdb is constructed on the fly:</p>
+
+<dl>
+  <dd><tt>tcprules tcp.smtp.cdb tcp.smtp.tmp &lt; tcp.smtp</tt>
+</dd></dl>
+
+<p><b><u>Caution</u></b>: For use with <b>tcpserver</b>, the value
+of the environment variable has to be included in quotes.</p>
+
+<h3>0.5 rcpthosts/morercpthosts.cdb</h3>
+
+<p>Though qmail can live happily without the knowledge of domains
+to be responsible for as provided by <u>rcpthosts</u>/<u>morercpthosts.cdb</u>,
+it is highly advisable to include all domains to receive emails
+for (as per DNS MX Records) into those control files. Otherwise,
+<b>qmail-smtpd</b> may act as an Open Relay. Further, some LOCALMFCHECKs
+will fail, as discussed below.</p>
+
+
+<h3>0.6 Pre-requisites</h3>
+
+In order to compile and use SPAMCONTROL in the discussed way, you need
+to install the following packages prior setting up this software:
+
+<ul>
+  <li><a href:"http://cr.yp.to/daemontools.html">D.J. Bernstein's
+  <b>daemontools</b></a> (optional)</li>
+  <li><a href:"http://www.fehcom.de/ipnet/ucspi-ssl.html"><b>ucspi-ssl
+  (0.8.x)</b> </a> <u>required</u> to compile <b>qmail-remote</b> and to allow
+  <b>qmail-smtpd</b> to accept TLS connections.</li>
+  <li><a
+  href:"http://www.fehcom.de/ipnet/ucspi-tcp6.html"><b>ucpsi-tcp6</b></a>
+  supporting RBL interrogation mode (optional)</li>
+  <li><a href:"http://cr.yp.to/djbdns.html">D.J. Bernstein's
+  <b>djbdns</b></a> which may be used as DNS client library instead
+  of <tt>dnslib</tt> (optional)</li>
+</ul>
+
+
+<p>&nbsp;</p>
+<hr align="left">
+<p>&nbsp;</p>
+
+<h2><A NAME="Qmail-smtpd">1. qmail-smtpd Extensions</h2>
+
+<h3><A NAME="Size">1.1 Size Extension</h3>
+
+<p><b>qmail-smtpd'</b>s "<tt>Mail From</tt>:" parameter
+parser is used to detect and evaluate the SIZE parameter and to
+eventually reject messages which initially exceed the databytes
+limit.</p>
+
+<p>Nevertheless, <b>qmail-smtpd</b> checks the size of the incoming
+message anyway.</p>
+
+<p>For incoming E-Mails which exceed the message size values (in
+Bytes) defined in</p>
+
+<ul>
+  <li><u>control/databytes</u>
+</li></ul>
+
+<p>or via the <tt>$DATABYTES</tt> environment variable.</p>
+
+<h3><A NAME="Auth">1.2 SMTP Authentication</h3>
+
+<p>SMTP Authentication requires a Client to authenticate and a
+Server to honor the authentication procedure. In this version
+of SPAMCONTROL, Qmail acts as an Authentication Server for <b>qmail-smtpd</b>
+and as an Authentication Client for <b>qmail-remote</b>.</p>
+
+<p>Usually, a MTA (such as Qmail) will accept transmissions of
+E-Mails anyway as long as the "Rcpt To: &lt;forwarding-path&gt;"
+is targeted to a local Recipient (according to <u>control/rcpthosts</u>).
+However, with SMTP Authentication you may allow an authenticated
+User to <i>relay</i> E-Mails. In this respect, SMTP Authentication
+copes with the deficiencies of the POP3/IMAP4 protocol and is
+applied as an alternative to SMTP-after-POP, which is ugly as
+well.</p>
+
+<p>I have taken the SMTP-Auth Patch from Krzysztof Dabrowski and
+included this into SPAMCONTROL. However, SPAMCONTROL's implementation
+is compliant with the <b>checkpassword</b> API designed by Dan
+Bernstein (the <i>Pluggable Authentication Module</i> PAM).</p>
+
+<p>SPAMCONTROL provides the following features:</p>
+
+<ul>
+  <li>(E-)SMTP-Auth protocol extension for <b>qmail-smtpd </b> and <b>qmail-remote</b> 
+  with  the keywords <tt>AUTH PLAIN LOGIN CRAM-MD5</tt>.  </li>
+  <li>"<tt>Mail From</tt>:" parameter parser/generator
+  for the parameter AUTH (ie. AUTH=userid) as 'xtext'.  </li>
+  <li>BASE64 en/decoding of the User-Id/Password/Digest.  </li>
+  <li><b>checkpassword</b> compatible call-API for an arbitrary
+  PAM program.  </li>
+  <li>For authenticated users, their Userid is treated as TCPREMOTEINFO
+  and displayed in <b>qmail-smtpd</b> 'Received:' header.  </li>
+  <li>Logging of successful and failed authentication attempts.
+</li></ul>
+
+<h4>1.2.1 Pluggable Authentication Module PAM</h4>
+
+<p>While SASL is a generic concept, the information flow for authentication
+between e.g. <b>qmail-smtpd </b>and the PAM is defined by Dan
+Bernstein's <b>checkpassword</b> API. SPAMCONTROL provides the
+PAM on file descriptor 3 as an informational string composed of:</p>
+
+<dir>
+	<li>The BASE64-decoded <i>Userid</i> followed by a 0,  </li>
+	<li>The BASE64-decoded <i>Password</i> (Login and Plain) or <i>Digest</i>
+		(CRAM-MD5) followed by a 0, and  </li>
+	<li>The plain <i>Challenge</i> followed by a trailing 0, thus
+		the PAM can reconstruct and validate the Digest in the CRAM-MD5 case.</li>
+ </dir>
+
+<p>You are free to choose or even write your own PAM program,
+but in any case, the <i>SASL Procedure</i> of the client and the
+server has to match and the procedure has to be advertised. 
+Compliant PAMs:</p>
+
+<ul>
+	<li>Dan Bernstein's <b>checkpassword</b>  </li>
+	<li>Larry M. Smith's <b>checkpassword.pl</b>,  </li>
+	<li>My <b>cmd5checkpw </b>version 0.30.  </li>
+	<li>Vpopmail's (5.4) <b>vchkpw</b>  </li>
+	<li>....</li>
+ </ul>
+
+<h4>1.2.3 qmail-smtpd Setup for SMTP Authentication</h4>
+
+<p><b>qmail-smtpd</b> including SMTP Authentication may be called
+by <b>tcpserver/sslserver</b> in a <b>supervise</b> <tt>run</tt>
+script. Here is an example (with some more features):</p>
+
+<dl>
+  <dd><tt>#!/bin/sh<br>
+  # qmail-smtpd startup with SMTP Authentication<br>
+  QMAILDUID=`id -u qmaild`<br>
+  QMAILDGID=`id -g qmaild`<br>
+  HOSTNAME=`hostname`</tt>
+  </dd><dd><tt>export SMTPAUTH=""<br>
+  exec softlimit -m 2000000 \<br>
+  tcpserver -vR -l $HOSTNAME \<br>
+  &nbsp;-u $QMAILDUID -g $QMAILDGID 0 smtp \<br>
+  &nbsp;&nbsp;&nbsp;/var/qmail/bin/qmail-smtpd /bin/cmd5checkpw
+  true 2&gt;&amp;1</tt></dd>
+ </dl>
+
+<p><b><u>Beware</u></b>! Unlike the original implementation, I
+omitted the inclusion of the <i>Hostname</i> as argument for <b>qmail-smtpd</b>.</p>
+
+<p>Unlike the standard <b>qmail-smtpd</b>, now you have</p>
+
+<ol>
+	<li>define the environment variable <tt>SMTPAUTH</tt> to allow
+		SMTP authentication and  </li>
+	<li>to provide in addition a PAM <i>program</i>, here <b>cmd5checkpw</b>,
+		which itself calls a shell named 'true' (<b>/bin/true</b> or
+		<b>/usr/bin/true</b>) exiting simply with "0".</li>
+</ol>
+
+
+<h4>1.2.4 Tailoring Authentication</h4>
+
+<p>The environment variable <tt>SMTPAUTH</tt> can be used to specify 
+the type of SMTP Authentication. Your choices are:</p>
+
+<table border="1" cellpadding="4" cellspacing="2">
+<tr>
+<td><b>SMTPAUTH</b></td>
+<td><b>Meaning<b></td>
+</tr>
+<tr>
+<td>""</td>
+<td>Left blank to allow Authentication types "PLAIN" and "LOGIN"</td>
+</tr>
+<tr>
+<td>"+cram"</td>
+<td>Add "CRAM-MD5" support</td>
+</tr>
+<tr>
+<td>"cram"</td>
+<td>Just (secure) "CRAM-MD5" support, no other types offered</td>
+</tr>
+<tr>
+<td>"!"</td>
+<td>Enforcing SMTP Auth (of type "LOGIN" or "PLAIN")</td>
+</tr>
+<tr>
+<td>"!cram" </td>
+<td> Enforcing SMTP Auth of type "CRAM-MD5"</td>
+</tr>
+<tr>
+<td>"!+cram" </td>
+<td> Enforcing SMTP Auth of type "LOGIN", "PLAIN" or "CRAM-MD5"</td>
+</tr>
+<tr>
+<td>"-" </td>
+<td> Disabling SMTP Auth (for a particular connection)</td>
+</tr>
+</table>
+
+
+<p>Unlike the <i>Submission</i> feature, these settings may be
+realized in the <b>tcprules</b> cdb per connection.
+
+<h4>1.2.5 Submission Port</h4>
+
+<p>SMTP clients requiering SMTP authentication expect the SMTP
+server to listen to the <b><i>Submission</i></b> port 587 instead
+of the standard SMTP port 25. To use this feature, you need to
+set up a second <b>qmail-smtpd </b>instance bound to port 587:</p>
+
+<dl>
+  <dd><tt>#!/bin/sh<br>
+  # qmail-smtpd startup with SMTP Authentication<br>
+  QMAILDUID=`id -u qmaild`<br>
+  QMAILDGID=`id -g qmaild`<br>
+  HOSTNAME=`hostname`</tt>
+  </dd><dd><tt>export SMTPAUTH="!"<br>
+  exec softlimit -m 2000000 \<br>
+  tcpserver -vR -l $HOSTNAME \<br>
+  &nbsp;-u $QMAILDUID -g $QMAILDGID 0 submission \<br>
+  &nbsp;&nbsp;&nbsp;/var/qmail/bin/qmail-smtpd /bin/cmd5checkpw
+  true 2&gt;&amp;1</tt></dd>
+ </dl>
+
+<p>If used in conjuntion with the previous run-script [1.2.3],
+<b>qmail-smtpd</b> will accept SMTP authentication sessions on
+port 25 and 587; however demanding a successful authentication
+on the submission port, while providing a fall-back to none-authentication
+on the standard SMTP port.</p>
+
+<p> Now, the Submission feaure requires the additional declaration
+of the <tt>SMTPAUTH</tt> with a leading <t>!</tt> exclamation mark
+instead of the <tt>SUBMISSION</tt> variable, which has been removed.
+
+
+<h4>1.2.6 User Database for cmd5checkpw</h4>
+
+<p>For SMTP Authentication, a User Database has to be generated
+and maintained. The SMTP Authentication User may exist independently
+of any System Users, Qmail Users, or E-Mail Accounts. In case
+of the modified <b>cmd5checkpw</b> I decided to keep the User
+in the Qmail directory as</p>
+
+<ul>
+	<li><u>users/authuser</u></li>
+</ul>
+
+<p>There exist other flavors, in particular the <b>saslpasswd</b>
+scheme or the Cyrus SASL Library you may want to use. Further,
+for users with POP3/IMAP4 Accounts on the system it is advisable
+to use a common User Database. For Vpopmail you may use <b>vchkpw</b>.</p>
+
+<p>However, since you are free to use any other <b>checkpassword</b>
+compliant PAM, it's up to you whatever you apply. Please remember:
+In order to access the Unix <tt>/etc/passwd</tt> the respective
+program has to run as <i>root</i>.</p>
+
+<h4>1.2.7 SMTP Authentication and Vpopmail</h4>
+
+<p>SMTP Authentication works well with <b>vpopmail</b>, however,
+you have to use a <b>checkpassword</b> compatible PAM. Older versions
+of <b>vchkpw</b> have to be patched accordingly (see 
+<a href="http://www.fehcom.de/qmail/smtpauth.html">http://www.fehcom.de/qmail/smtpauth.html</a>).</p>
+
+<p><b>vchpkw</b> offers a lot of authentication capabilities;
+it supports login, plain, and CRAM-MD5 and may authenticate the
+user against a <b>mysql</b> database and others. In start-up script
+for <b>qmail-smtpd</b> you have to make sure to access the user
+database with the correct user access rights:</p>
+
+<dl>
+  <dd><tt>#!/bin/sh<br>
+  # qmail-smtpd startup with SMTP Authentication + vpopmail<br>
+  QMAILDUID=`id -u vpopmail`<br>
+  QMAILDGID=`id -g vpopmail`<br>
+  HOSTNAME=`hostname`
+  export SMTPAUTH="crammd5"<br>
+  exec softlimit -m 2000000 \<br>
+  tcpserver -vR -l $HOSTNAME \<br>
+  &nbsp;-u $QMAILDUID -g $QMAILDGID 0 smtp \<br>
+  &nbsp;&nbsp;&nbsp;/var/qmail/bin/qmail-smtpd /home/vpopmail/bin/vchkpw
+  true 2&gt;&amp;1</tt></dd>
+ </dl>
+
+<p>If you use <b>Sqwebmail</b> in addition, the user is free to
+set his/her own password.</p>
+
+<h3><A NAME="Tls">1.3 (START)TLS support</h3>
+
+<p>SPAMCONROL's STARTTLS support for <b>qmail-smtpd</b> is aligned
+with <a href="http://www.suspectclass.com/sgifford/ucspi-tls/">Scott
+Gifford's approach</a> and depends on the following:</p>
+
+<ol>
+	<li><a href="http://www.fehcom.de/ipnet/ucspi-ssl.html">Superscript's</a> <b>sslserver</b>
+		(0.8x) instead of <b>tcpserver -- and --</b> </li>
+	<li>the availability of a valid X.509 certificate, an appropiate
+		key, and additionally a Diffie-Hellman parameter file,  </li>
+	<li>the correct feeding (via environment variables) of those
+		settings to <b>sslserver</b> to allow encryption.</li>
+</ol>
+
+Usually, TLS support is provided by two different usage schemes:
+
+<ul>
+	<li><u>STARTTLS</u> support on top of SMTP and the regular
+		port 25.</li>
+	<li>Direct TLS connect by means of <u>SMTPS</u> on port 465.</li>  
+</ul>		 
+	
+<p>My STARTTLS implementation conforms with RFC 3207 but lacks
+support of 
+	<ul> 
+		<li><i>Certificate Revocation Lists</i> (<b>CRL</b>)</li>
+		<li><i>Online Certificate Status Protocol</i> (<b>OCSP</b>) implementation</li>
+		<li>Server and/or Client <i>Session Caching</i>and <i>Session Resumption</i></li>
+	</ul>
+	
+These functions need to be implemented in <b>sslserver</b> however are
+of little benefit for email encryption by means of TLS.</p>
+
+<h4>1.3.1 (START)TLS implementation</h4>
+
+<p>Most current STARTTLS/TLS solutions depend on the existence
+and availability of the OpenSSL libraries -- so does SPAMCONTROL.
+However, unlike other implementations, <b>qmail-smtpd</b> is insulated
+against OpenSSL by means of <b>sslserver</b>. In fact, all encryption
+and certificate verification is facilitated by <b>sslserver</b>.
+In this respect, Scott's and my STARTTLS implementation is very
+much OSI-like. The communication and presentation happens at a
+well defined environment, typically assigned to the user and group
+<i>ssl</i>. Any potential attacks or bugs are kept away from the
+application and don't harm.</p>
+
+<p>The reading and response to client cerificates and the actual
+encryption happens in the assigned user spaces; which should never
+be <i>root</i>.</p>
+
+<h4>1.3.2 Prereqs</h4>
+
+<p>Install <a href="http://www.fehcom.de/ipnet/ucspi-ssl.html">ucspi-ssl</a>
+(version &gt;= 0.80).</p>
+
+<p>Further, it is helpful to create a low privileged user and
+group <i>ssl</i>, which will be used by <b>sslserver</b> for SSL/TLS
+communication purposes. 
+Please follow Scott Giffords' <a href="http://www.suspectclass.com/sgifford/ucspi-tls/">advices</a>.</p>
+
+<h4>1.3.3 TLS Envrionment</h4>
+
+<p>Apart from the 'global' environment variable <tt>UCSPITLS</tt>
+<b>sslserver</b> are fed by several environment typically 
+included in a "profile" <tt>/var/qmail/ssl/env</tt>.</p>
+
+<p>On my system, this file includes the the following settings:</p>
+
+<dl>
+  <dd><tt># Set<br>
+  SSL_USER=ssl<br>
+  SSL_GROUP=ssl<br>
+  SSL_DIR="/var/qmail/ssl"<br>
+  # Rest<br>
+  SSL_CHROOT="$SSL_DIR"<br>
+  CERTCHAINFILE="/var/qmail/ssl/chainfile"<br>
+  CERTFILE="/var/qmail/ssl/cert"<br>
+  KEYFILE="/var/qmail/ssl/key"<br>
+  DHFILE="/var/qmail/ssl/dhparam"<br>
+  SSL_UID=`id -u $SSL_USER`<br>
+  if [ $? -ne 0 ] ; then echo "No such user '$SSL_USER'"
+  &gt;&amp;2 ; exit; fi<br>
+  SSL_GID=`id -g $SSL_USER`<br>
+  if [ $? -ne 0 ] ; then echo "No such group '$SSL_GROUP'"
+  &gt;&amp;2 ; exit; fi<br>
+  export SSL_UID SSL_GID SSL_CHROOT <br>
+  export CERTFILE KEYFILE DHFILE</tt></dd>
+ </dl>
+
+<p>Of course it is required, to have raised the directory
+<tt>/var/qmail/ssl</tt> before and to generate via <b>openssl</b> the
+appropriate files before.</p>
+
+<p><b><u>Note</u></b>: These settings are 'global';
+however, by means of <b>sslserver</b> and the settings in your
+<tt>tcp.smtpd</tt> file it is possible to use different certificates
+per connection.</p>
+
+<p><b><u>Comment</u></b>: Please read the documentation of UCSPI-SSL
+carefully w.r.t. the "mod-ssl" variables. It might in
+addition be necessary to define CAFILE, CADIR and other SSL options
+to your needs.</p>
+
+<p>After you verified your settings, restart <b>qmail-smtpd</b>.
+Whether <b>qmail-smtpd</b> will present "<tt>STARTTLS</tt>"
+in the EHLO dialogue, depends on the presence of the <tt>UCSPITLS</tt>
+environment variable. These can be set i.e. per IP in the <tt>tcp.smtpd</tt>
+control file.</p>
+
+<h4>1.3.4 STARTTLS Settings</h4>
+
+<p>Substitute <b>tcpserver</b> with <b>sslserver</b> in the <tt>run</tt>
+script for <b>qmail-smtpd</b>. If you use <b>softlimits</b>, it
+might be necessary to raise those settings significantly due to
+the increased memory requirements. Here is my <tt>run</tt> script:</p>
+
+<dl>
+  <dd><tt>#!/bin/sh<br>
+  QMAILDUID=`id -u qmaild`<br>
+  QMAILDGID=`id -g qmaild`<br>
+  HOSTNAME=`hostname`<br>
+  export SMTPAUTH="crammd5"<br>
+  export UCSPITLS=""<br>
+  MAXCONCURRENCY=`cat /var/qmail/control/concurrencyincoming`<br>
+  . /var/qmail/ssl/env<br>
+  exec softlimit -m 180000000 \<br>
+  sslserver -sevn -l $HOSTNAME -c $MAXCONCURRENCY \<br>
+  -x /var/qmail/etc/tcp.smtpd.cdb \<br>
+  -u $QMAILDUID -g $QMAILDGID 0 smtp \<br>
+  /var/qmail/bin/qmail-smtpd cmd5checkpw true 2&gt;&amp;1</tt></dd>
+ </dl>
+
+<p>It is absolutely necessary to use the <tt>"-n"</tt>
+flag for <b>sslserver</b>, since this will trigger the availability
+of encrypted communications channels between <b>sslserver</b>
+and <b>qmail-smtpd</b>.</p>
+
+
+<h4>1.3.5 SMTPS Settings</h4>
+
+<p>Unlike the SMTP+STARTTLS the SMTPS setup facilitates 
+a TLS connection immediately the TCP handshake is 
+finished and thus the entire SMTP session dialoge is protected against 
+espionage and by the same token not vulnerable against sabotage 
+(see: VU#555316).</p>
+
+<p>Setting up <b>qmail-smtpd</b> on the SMTPS port is easy:</p>
+
+<dl>
+  <dd><tt>#!/bin/sh<br>
+  QMAILDUID=`id -u qmaild`<br>
+  QMAILDGID=`id -g qmaild`<br>
+  HOSTNAME=`hostname`<br>
+  export SMTPAUTH="crammd5"<br>
+  export UCSPITLS=""
+  MAXCONCURRENCY=`cat /var/qmail/control/concurrencyincoming`<br>
+  . /var/qmail/ssl/env<br>
+  exec softlimit -m 180000000 \<br>
+  sslserver -sev -l $HOSTNAME -c $MAXCONCURRENCY \<br>
+  -x /var/qmail/etc/tcp.smtpd.cdb \<br>
+  -u $QMAILDUID -g $QMAILDGID 0 smtps \<br>
+  /var/qmail/bin/qmail-smtpd cmd5checkpw true 2&gt;&amp;1</tt></dd>
+ </dl>
+
+<p>Please realize also, that <b>sslserver</b> is called without
+the option <tt>"-n"</tt> thus no delay is required. In this case, 
+<b>sslserver</b> and <b>qmail-smtpd</b> communicate over the 
+standard file descriptors entirely.</p>
+
+
+<h4>1.3.6 Flexible STARTTLS settings per Client</h4>
+
+<p>Once <tt>UCSPITLS</tt> ist set and exported, <b>qmail-smtpd</b>
+accepts <tt>STARTTLS</tt> connections. However, it might be necessary 
+to customize this behavior per sending MTA:
+</p><ul>
+	<li>Set <tt>UCSPITLS='!'</tt> to accept <u>only</u> <tt>STARTTLS</tt>
+		SMTP sessions (aka 'REQUIRETLS').</li>
+	<li>Set <tt>UCSPITLS='-'</tt> to disable <tt>STARTTLS</tt> by 
+	<b>qmail-smtpd</b></li>
+</ul>
+
+While typically <tt>UCSPITLS=''</tt> is set <b>qmail-smtpd</b>'s <tt>run</tt> file,
+you can redefine this variable in <b>sslserver</b>'s <tt>tcp.smtpd</tt>
+control file per inbound connection.
+
+
+<h4>1.3.7 TLS Client verification by means of a X.509 certificate</h4>
+
+<p>Typically, the ESMTP client connecting to the server does not
+provide a X.509 certificate. In this case, the ESMTP connection
+is still TLS encrypted and the client might use the server's certificate
+for verification/validiation purpose.</p>
+
+<p>However the server may request a valid X.509 certificate from
+the client. In this case, the (ssl)<b>server</b> needs to have
+the certificate of the CA (<b><i>Certificate Authority</i></b>)
+which has signed the client's certificate in the first place (in
+PEM format).</p>
+
+<ol>
+	<li>Make <b>sslserver</b> aware of the CA certificate by means
+		of setting the environment variable $CACERT accordingly or include
+		the 'hashed' certificate in a directory available via $CADIR.  </li>
+	<li>Include the IP or the FQDN of the specific SMTP client into
+		tcp.smptd database and define and populate the environment variable
+		$CCACERT with the path to the specific CA X.509 certifiate (in
+		PEM) format.  </li>
+	<li>Call <b>sslerver</b> with the option '-i' and '-h' (default)
+		to interrogate the X.509 certificate of those clients which have
+		additionally the environment variable $CCACERT set and to lookup
+		the FQDN in the DNS.</li>
+ </ol>
+
+<p><b>sslserver</b> will not only ask for the client certificate
+but will verify it by means of the CA certificate and validate
+it's content matching the received FQDN with the presented 'SubjectNameAltName'
+and perhaps the 'SlsubjectName' in the client certificate. </p>
+
+<p>In case, any of the checks fail, the connection attempt will
+be refused. </p>
+
+<h4>1.3.8 (START)TLS and SMTPAUTH</h4>
+
+<p>In case <b>qmail-smtpd</b> is instructed to use STARTTLS and
+SMTPAUTH, SMTP Authentication always takes place after the TLS
+session is active, but never reverse. Thus, all SMTP parameters
+like <i>username</i> and <i>password</i> are already encrypted.
+Of course, SMTP Authentication is still available for unencrypted
+SMTP connections, and STARTTLS does not require per se SMTP Authentication.
+However, STARTTLS and SMTP Authentication is a strong and powerful
+couple to secure the SMTP communication.</p>
+
+<h4>1.3.9 (START)TLS Received Header Extensions</h4>
+
+<p>SPAMCONTROL displays the use of TLS in the Received header
+(according to RFC 3207). The following information is added:</p>
+
+<ul>
+	<li>The TLS protocol in use.  </li>
+	<li>The Cipher in use.  </li>
+	<li>The presented encryption key length and key length in place.  </li>
+	<li>The client's "Subject" Distinguished Name (DN).</li>
+</ul>
+
+<p>Here's a sample using Thunderbird als email client:</p>
+
+<dl>
+  <dd><tt><font size="-1">Received: (qmail 35450 invoked from network);
+  15 Mar 2006 20:22:09 -0000<br>
+  Received: from dornroeschen.fehnet.de (HELO ?192.168.192.19?)
+  (erwin@192.168.192.19)<br>
+  encrypted via TLSv1: RC4-MD5 [128/128] DN=unknown<br>
+  by orion.fehnet.de with ESMTPSA; 15 Mar 2006 20:22:09 -0000</font></tt></dd>
+  </dl>
+
+<p><u>Note</u>: The received DN ist typically 'unknown'
+because the client doesn't provide a certificate.</ul></p>
+
+<p>In the above case the keyword <tt>ESMTPSA</tt>
+tells that the connection was established via <b>SMTPS</b> and
+additionally was authenticated <b>A</b>: <tt>(E)SMTPS(A)</tt>. </p>
+
+
+<h3><A NAME="Mav">1.4 MAV: "Mail From: Address Verification"</h3>
+
+<p>Mail From: Adress Verification (MAV) is a mean to enforce the
+use of the SMTP "<tt>Mail From</tt>:" address for particular
+Relayclients. Former versions of SPAMCONTROL used a "LOCALMF"
+check which allowed only a very limited granularity. However,
+with MAV you can control/enforce</p>
+
+<ul>
+	<li>the use of a particluar domain name (<i>@example.com</i>)
+		per IP connection in the "<tt>Mail From</tt>:" - or  -  </li>
+	<li>the use of a particular "<tt>Mail From:</tt>" address  
+		(<i>user@example.com</i>) per Authenticated User - and
+	perhaps -- </li>
+	<li>the identical setting of the provided <tt>'Mail From:'</tt>
+	address and <tt>$TCPREMOTEINFO</tt>.
+</ul>
+
+<p>MAV is in particluar very useful if emails from your domains
+have to be undoubtly "officially" send.</p>
+
+<h4>1.4.1 Requiring MAV</h4>
+
+<p>Mail From: Address Verification is only be done if the flag
+'<i>relayclient</i>' is set. This flag is set if</p>
+
+<ul>
+	<li>the environment variable <tt>RELAYCLIENT</tt> is provided
+		through <b>tcpserver</b>/<b>sslserver</b> (i.e. by means of POP-before-SMTP)
+		- or -  </li>
+	<li>in case the user is verified by means of SMTP Authentication.</li>
+</ul>
+
+<p>For these circumstances MAV can be enforced by means of the
+environment variable <tt>LOCALMFCHECK</tt>:</p>
+
+<ul>
+	<li><tt>LOCALMFCHECK="" </tt>means, the domain/host-part
+		of the provided SMTP Originator address is checked against the
+		contents of <u>control/rcpthosts</u> and <u>control/morercpthost.cdb.</u>  </li>
+	<li><tt>LOCALMFCHECK="example.com"</tt> requires that
+		the domain/host-part of the Originator address matches the provided
+		string (here: "example.com" - irrespectively of the case).  </li>
+	<li><tt>LOCALMFCHECK="!"</tt> checks the Originator
+		address against the contents of the file
+		<u>control/mfrules.cdb</u>.</li>
+	<li><tt>LOCALMFCHECK="="</tt> requires the identity of the <tt>'Mail From:'</tt>
+		address and <tt>$TCPREMOTEIFNO=<i>userid</i></tt> in particular useful
+		for authentication.
+</ul>
+
+<h4>1.4.2 Control files mfrules and mfrules.cdb</h4>
+
+<p>The file <u>control/mfrules</u> follows roughly the same syntax
+as the common file <u>tcp.smtpd</u> used for <b>tcpserver</b>/<b>sslserver</b>.
+It assigns either a complete SMTP address, a FQDN, an IP adress
+or a domain to a set of allowed Originator addresses. In practice
+<u>control/mfrules</u> allows</p>
+
+<ul>
+	<li>for <i>relayclients</i> qualified by SMTP authentication
+		- to verify the used SMTP Originator address against the allowed/assigned
+		address,  </li>
+	<li>for <i>relayclients</i> identified by IP or domain - to verify
+		the used Originator address against <b><i>a list</i></b> of assigned
+		possible addresses,  </li>
+	<li>for <i>relayclients</i> identified by IP or domain - to verify
+		the used host/domain-part of the SMTP Originator address against
+		the assigned domain-name.</li>
+</ul>
+
+<p>Once you have populated <u>control/mfrules</u> run <b>qmail-mfrules</b>
+to derive <u>control/mfrules.cdb</u> from the input file. Additionally,
+define <tt>LOCALMFCHECK="!" </tt>either gobally or in
+the<u> tcp.smtpd</u> file.</p>
+
+<h4>1.4.2. Reply to the relayclients</h4>
+
+<p>Mail Clients may be setup wrongly or a user may want to use
+the relaying MTA to send emails for a different name. In case,
+MAV is in place and well configured, the particular user will
+not be allowed to send the mail over the gateway receiving the
+following SMTP reply:</p>
+
+<ul>
+  <dl>
+    <dd><tt>553 sorry, invalid address specified (#5.7.1)</tt>
+  </dd></dl>
+</ul>
+
+<p>Since this might not be helpful for the (innocent) sender,
+you might use the environment variable <tt>REPLYMAV</tt> to add
+a qualification to that message.</p>
+
+<h4>1.4.3 MAV SMTP protocol extension</h4>
+
+<p>MAV puts the burden of SMTP Originator address verification
+ot the relaying MTA; that is the reverse scheme compared to SPF
+and others. Emails qualified through MAV are labeled with "ESMTPM"
+in the Received header, which is generated by <b>qmail-smtpd</b>.</p>
+
+
+<h3>1.5 Customizable SMTP Reply Messages</h3>
+
+<p><b>qmail-smtpd</b> reads serveral environment variables
+which allows the customization of the SMTP Reply messages:</p>
+
+<ul>
+	<li>REPLY_HELO  </li>
+	<li>REPLY_BADRCPTTO  </li>
+	<li>REPLY_MAILBOX  </li>
+	<li>REPLY_MAXSIZE  </li>
+	<li>REPLY_BADMAILFROM  </li>
+	<li>REPLY_SENDEREXIST  </li>
+	<li>REPLY_NOGATEWAY  </li>
+	<li>REPLY_SENDERINVALID  </li>
+	<li>REPLY_CONTENT</li>
+</ul>
+
+<p>Those (customized) variables and thir specific content can be defined in 
+a single file <u>smtpreplies</u> (sample attached) to be loaded from the <tt>run</tt> 
+script for <b>qmail-smtpd</b>.</p>
+
+
+<p>For instance, <b>qmail-smtpd</b> will send a SMTP 554 Error Reply 
+under the following conditions:<p></p>
+
+<ul>
+	<li>a badmimetype was encountered,  </li>
+	<li>a badloadertype was encountered,  </li>
+	<li>a Virus was found via an external AV Scanner,  </li>
+	<li>the email exceeds the hop count.</li>
+</ul>
+
+<p>The SMTP Reply code for the first three conditions is always
+"<tt>554 sorry, invalid message content (#5.3.2)</tt>".
+The rejection of email because of the message content is due to
+some internal policy. For those users, which are subject of this
+policy innocently (and did not send ie. a virus mail on purpose),
+it might be advisable to explain the company's email policy here.</p>
+
+<p>The environment variable</p>
+
+<ul>
+  <li><tt>REPLY_CONTENT</tt>
+</li></ul>
+
+<p>allows to include a particular SMTP 554 Reply. Typically, an
+URL might be referenced: <tt>REPLY_CONTENT="[ see: http://www.fehcom.de/emailpolicy.html]"</tt> 
+which allows to detail possible circumventions.</p>
+
+<h3>1.6 Interrogating SMTP envelope variables</h3>
+
+<p>For special purposes, it might be necessary to have knowledge
+of the SMTP envelope information while <b>qmail-smtpd</b> is running.
+SPAMCONTROL (&gt;= 2.5.26) puts the following informations into
+the environment -- as soon as available:</p>
+
+<ul>
+	<li><tt>HELOHOST</tt> - The SMTP client's HELO/EHLO greeting  </li>
+	<li><tt>MAILFROM</tt> - The provided SMTP 'Mail From:' address  </li>
+	<li><tt>RCPTTO</tt> - The received SMTP 'Rcpt To:' addresses
+		concatinated by blanks  </li>
+	<li><tt>AUTHPROTOCOL</tt> - The Authentication mechanism used  </li>
+	<li><tt>AUTHUSER</tt> - The Authentication username provided</li>
+</ul>
+
+<p>The provided <b>qmail-queue.scan</b> script makes use of these
+variables. You may also populate the DELIVERTO environment variable
+-- read by <b>qmail-smtpd</b> -- to include additional recipients.</p>
+
+<p>In case of the SSL/TLS session further environment variables
+a la <tt>mod_ssl</tt> are available.</p>
+
+
+<h3>1.7 X-RBL-Info Header</h3>
+
+<p><b>qmail-smtpd</b> will include the information received by a Relay-Blacklist
+(i.a. Spamhaus) into the header of the message, once the environment variable
+<tt>$RBLSMTPD</tt> is available and filled with some information. </p>
+
+<p>Here is a sample: 
+
+<dl>
+    <tt>
+	<dd>Received: 	(qmail 9477 invoked from network); 7 Feb 2013 03:39:16 -0000</dd>
+	<dd>Received: 	from 79-101-71-86.dynamic.isp.telekom.rs (79.101.71.86) by mail.fehcom.net with ESMTP; 
+		7 Feb 2013 03:39:16 -0000</dd>
+	<dd>X-Rbl-Info: 	http://www.spamhaus.org/query/bl?ip=79.101.71.86</dd>
+	</tt>
+</dl>
+
+This information can be used by a MUA/LDA to filter the mail.</p>
+
+<p><u>Note:</u> Currently only <b>ucspi-tcp6</b> supports this with it's <b>rblsmtpd</b>
+program invoked in <i>interrogation</i> mode.</p>
+
+<h3>1.8 SPF-Header</h3>
+
+<p><b>qmail-smtpd</b> is able to use received SPF (Sender Policy Framework) 
+information to display those in the email header:</p>
+
+<dl>
+	<dd><tt>Received-SPF: 	pass (example.com: domain of mydomain.com <br>
+	   &nbsp; &nbsp; designates 192.168.1.2 as permitted sender) receiver=erwin<br>
+	   &nbsp; &nbsp; client-ip=192.168.1.2; envelope-from=&lt;me@fehnet.de&gt;</tt>
+	</dd>
+</dl>
+
+</p>The implementation is able to include all cases of SPF results 
+('+' pass, '-' fail, '~' softfail, '?' neutral, 'o' none, 't' temperror, 'e' permerror); 
+however depends on a feed of SPF variables. The idea is to extract the SPF information in a 
+forefront process, like <b>rblsmtpd</b> since the retrieval and extraction of
+the SPF information is cumbersome and to put those values into the environment for
+later processing. </p>
+
+<p>For this purpose, SPAMCONTROL includes an API:
+
+<ul>
+	<li>The forefront process uses and provides the environment variable <tt>SPFINFO</tt>.</li>
+	<li>The variable <tt>SPFINFO</tt> is populated as set of concatinated individual 
+		values in the following manner:<br>
+		<tt>SPFINFO="result|identity|clientip|helo|envelopefrom|receiver|problem|mechanism|"</tt><br>
+		in identical usage of the SPF variables defined in RFC 4408:<br>
+	<ol>
+		<li><tt>result</tt> is the result of the evaluation and is expressed in 
+			the standard tokens (i.e. '+', '-' ...).</li>
+		<li><tt>identity</tt> carries the information of the retrieval mechanism (i.e.
+			recipient address, Helo greeting ...).</li>
+		<li><tt>clientip</tt> is the IP of the sending host; if this 
+			information is omitted, <b>qmail-smtpd</b> uses the <tt>remoteip</tt>.</li>
+		<li><tt>helo</tt> is the Helo greeting of the sender; if this 
+			is omitted, <b>qmail-smtpd</b> uses the received <tt>E/HELO</tt> string.</li>
+		<li><tt>envelopefrom</tt> is the <tt>Return-Path</tt> from the envelope;
+		  if this is omitted, <b>qmail-smtpd</b> uses the <tt>Mail From:</tt> content.</li>
+		<li><tt>receiver</tt> is the <tt>Forwarding-Path</tt> from the envelope;
+		  if this is omitted, <b>qmail-smtpd</b> uses the <tt>Rcpt To:</tt> content.</li>
+		<li><tt>problem</tt> includes a description of encountered errors.</tt></li>
+		<li><tt>mechanism</tt> is the purported evaluation method.</li>
+		</ol>
+		</li>
+</ul>
+
+<p><u>Note</u>: Except for <tt>result</tt> any of these variables may be
+empty/unsupplied.</p>
+
+<p>Currently, I'm not aware of any SPF retrieval and feeding process, though
+their exists a patch for ucspi-tcp including a SPF lookup. However, 
+considering the demand this kind of information -- which can be understood as
+a prototype even for the competing DKIM algorithm -- this should be understood 
+as starting point.</p>
+
+<p>&nbsp;</p>
+<hr align="left">
+<p>&nbsp;</p>
+
+<h2><A NAME="Envelope">2. qmail-smtpd SMTP Envelope Filters</h2>
+
+<p>The SMTP Envelope consists of three parts:</p>
+
+<ul>
+	<li>The <tt>HELO/EHLO greeting</tt> from the SMTP Client.  </li>
+	<li>The Originator: <tt>Mail From: &lt;Return-Path&gt;</tt>.  </li>
+	<li>The Recipient: <tt>Rcpt To: &lt;Forwarding-Path&gt;</tt>.</li>
+</ul>
+
+<p>SPAMCONTROL allows to filter E-Mails according to the <tt>bad*</tt>
+criteria with a so-called <i>wildmat</i> search, which is a subset
+of the known R<i>egualar Expressions</i> (RegEx). The <i>wildmat</i>
+search works in order <b><u>least significant</u></b> to <b><u>most
+significant</u></b> and includes</p>
+
+<ol>
+	<li>a <b><i>case-insensitive </i></b><i>straight</i> search -
+		and - </li>
+	<li>a <b><i>case-sensitive </i></b><i>wildmat</i> search</li>
+</ol>
+
+<p>The following sets of wildmat control characters can be used:</p>
+
+<ul>
+	<li>Exclamation mark (!): The wildmat filter allows you to define
+	<i>exceptions</i> for particular clients/addresses by simply
+		putting an exclamation mark (!) as first character in the line.  </li>
+	<li>Asterisk (*): General pattern matching character; one or
+		more preceding.  </li>
+	<li>Question Mark (?): Match zero or one preceding.  </li>
+	<li>Backslash (\): Literal expression of following character,
+		eg. \[.  </li>
+	<li>Match <u>one</u> from a set ([...]): i.e. [Ff][Aa][Kk][Ee]
+		matches FAKE, fake, FaKe, FAKe etc.</li>
+</ul>
+
+<h3>2.1 SMTP Envelope Addresses</h3>
+
+<p>Any E-Mail address, lets say &lt;<tt>user@host.domain.com</tt>&gt;
+consists of a</p>
+
+<dl>
+  <dd><b><i>local</i></b> part: <tt>user</tt> (left from the "@")
+  and a
+  </dd><dd><b><i>host </i></b>part: <tt>host</tt>.<tt>domain.com</tt>
+  (right hand side from the "@").
+  </dd><dd>&nbsp;
+</dd></dl>
+
+<dir>
+	<li><b>qmail-smtpd</b> converts hostnames and domainnames taken
+		from the <b>tcp-env/tcpserver</b> environment to lowercase (see
+		<b>man</b> <tt>addresses</tt>).  </li>
+	<li><b>qmail-smtpd</b> reads the SMTP envelope address inside
+		the recommended SMTP envelope brackets "&lt;" and "&gt;".
+	<ul>
+		<li>Originally, SMTP addresses <i>without</i> the brackets are
+			accepted; and are terminated if a blank is seen " ",</li>
+		<li>however with SPAMCONROL (and RFC 2821) brackets are mandatory.</li>
+		<li>Double-quotes in SMTP addresses "forwarding path" are stripped.</li>
+	</ul>
+	</li>
+</dir>
+
+<p>E-Mail addresses for <i>local accounts </i>are considered case-insensitive
+and delivered irrespective of their case.</p>
+
+<p>Lets say - if the local account is "admin" and the
+RCPT to: tells &lt;AdMin&gt; or &lt;adMIN&gt; the delivery will
+be successful.</p>
+
+<h3>2.2 Filtering HELO/EHLO Greetings (badhelo)</h3>
+
+<p>RFC 2821 says: <i>"These commands (HELO/EHLO) are used
+to identify the SMTP client to the SMTP server. The argument field
+contains the fully-qualified domain name of the SMTP client if
+one is available. In situations in which the SMTP client system
+does not have a meaningful domain name (e.g., when its address
+is dynamically allocated and no reverse mapping record is available),
+the client SHOULD send an address literal (see section 4.1.3),
+optionally followed by information that will help to identify
+the client system. y The SMTP server identifies itself to the
+SMTP client in the connection greeting reply and in the response
+to this command."</i></p>
+
+<p>Qmail records the HELO/EHLO greeting string for every received
+message in the E-Mail "Received:" header in case the
+provided HELO/EHLO string is <i>different</i> from the connecting
+hosts FQDN:</p>
+
+<dl>
+  <dd><tt>Received: from foo.bar.de (HELO foo) (192.168.192.11)<br>
+  by heaven.bar.de with SMTP; 25 Apr 2003 15:01:42 -0000</tt>
+</dd></dl>
+
+<p>The HELO/EHLO string is included as "<tt>(HELO foo)".
+</tt>The HELO/EHLO string is usually generated by the sending
+MTA without much control (MUAs often use their generic <i>hostname</i>).</p>
+
+<p>SPAMCONTROL allows a flexible filtering of the clients HELO/EHLO
+greeting string, which depends on the setting of the environment
+variable <tt>HELOCHECK</tt>:</p>
+
+<dir>
+	<li><tt>HELOCHECK=""</tt>: evaluate <u>control/badhelo</u>
+		control file  </li>
+	<li><tt>HELOCHECK="!"</tt>: reject session, if no HELO/EHLO
+		greeting is not provided/empty.  </li>
+	<li><tt>HELOCHECK="."</tt>: reject session, if no HELO/EHLO
+		greeting is provided/empty and evaluate <u>control/badhelo</u>
+		control file  </li>
+	<li><tt>HELOCHECK="="</tt>: require that the HELO/EHLO
+		greeting corresponds to the FQDN (= <tt>TCPREMOTEHOST</tt>) of
+		the host.</li>
+	<li><tt>HELOCHECK="A"</tt>: DNS A lookup for the HELO/EHLO
+		greeting and evaluate <u>control/badhelo</u>.  </li>
+	<li><tt>HELOCHECK="M"</tt>: DNS MX lookup for the HELO/EHLO
+		greeting and evaluate <u>control/badhelo</u>.</li>
+</dir>
+
+<p>The HELOCHECKs are only done, in case RELAYCLIENT is not set
+(split-horizon fashion). In my current setup, a useful setting
+is HELOCHECK="." and with the following input in <u>control/badhelo</u></p>
+
+<dl>
+  <dd><tt>myIPAddress</tt>
+  </dd><dd><tt>myFQDN</tt>
+  </dd><dd><tt>localhost</tt>
+  </dd><dd><tt>localhost.localdomain</tt>
+</dd></dl>
+
+<p>These settings exclude the spoofing of the MTA's own address,
+which is typical for spam senders, since they determine the EHLO/EHLO
+greeting from the initial IP/SMTP session parameter.</p>
+
+<h3>2.3 Filtering Mail From: SMTP Addresses (badmailfrom)</h3>
+
+<p>SPAMCONTROL allows four types of checks against the provided
+"<tt>Mail From</tt>:" SMTP envelope address (which I
+often call the "Originator"):</p>
+
+<ul>
+	<li>A DNS MX lookup whether the provided Domain (the part right
+		from the "@", i.e. user@example.com) exists.  </li>
+	<li>A wildmat check against the content of <u>control/badhelo</u>.  </li>
+	<li>An anti-spoofing test, if the Originator addresses matches
+		an entry in <u>control/badhelo</u> appended with a "+"
+		(@mydomain.com+).  </li>
+	<li>A <i>badmailfromunknown</i> test (in case TCPREMOTEINFO is
+		"unknown", thus the IP address has no correspondance
+		in the DNS) if the Originator address matches an entry in <u>control/badmailfrom</u>
+		appended with a "-" (@yahoo.com-).  </li>
+	<li>Additionaly, a <i>badmailfromwellknown</i> test can be facilitäted
+		by means of a trailing '=' (@hotmail.com=).</li>
+</ul>
+
+<h4>2.3.1 DNS MX Checks of the Envelope Sender</h4>
+
+<p>Invoking the environment variable <tt>MFDNSCHECK</tt> in the
+<b>qmail-smtpd</b> startup script enables <i>globally</i> the
+DNS check for the envelope's Sender.</p>
+
+<p>Example:</p>
+
+<dl>
+  <dd><tt>#!/bin/sh<br>
+  export MFDNSCHECK=""<br>
+  .....</tt></dd>
+</dl>
+
+<p>Additionally, the environment variable may be defined individually
+within a cdb of <b>tcpserver/sslserver</b>. Typically, this is
+done for "non-trusted" hosts within a <b>tcpservers</b>
+cdb:</p>
+
+<dl>
+  <dd><tt>127.0.01:allow,RELAYCLIENT=""</tt>
+  </dd><dd><tt>:allow,MFDNSCHECK=""</tt>
+</dd></dl>
+
+<p>If environment variable MFDNSCHECK is not set, <b>qmail-smtpd</b>
+does not perform this DNS MX check.</p>
+
+<p><b><u>Note</u></b>: All DNS checks are either done by means
+of the <b><i>libresolv</i></b> library which comes with BIND,
+or my means of DJBDNS's routines, which can be included installing
+DJBDNS and using Nikola Vladov's enhancements for DJBDNS in addition
+with the modified Makefile.djbdns.</p>
+
+<h4>2.3.2 Standard badmailfrom Checks</h4>
+
+<p><u>control/badmailfrom</u> was the only SMTP envelope filter
+Dan Bernstein originally implemented for <b>qmail-smtpd</b>. Here,
+only particular names or perhaps domains were listeted to be rejected
+in the SMTP dialogue. Since then, various flavours of <i>badmailfrom</i>
+have been brought out. However, the approach to reduce spam emails
+feeding <u>control/badmailfrom</u> with known spammer addresses
+is comparable trying to hit a moving target. Almost all Originator
+addresses spammer use today are fake and in this sense are meaningless.</p>
+
+<h4>2.3.3 badmailfromunknown Checks</h4>
+
+<p>There exist a special case, where you expect an email with
+a specific Originator address to be send via particular MTAs.
+For instance, if you see an email with Originator address "support@microsoft.com",
+it has to be send from a Microsoft MTA. <b>qmail-smtpd</b> has
+the knowledge of the sender's IP and FQDN (by means of the environment
+variables <tt>TCPREMOTEIP</tt> and <tt>TCPREMOTEHOST</tt>) in
+case you use <b>tcp-env</b>, <b>tcpserver</b>, or <b>sslserver</b>
+with the appropriate argument, i.e.<tt> <b>tcpserver -h</b></tt>.</p>
+
+<p>MTAs for which the FQDN can't be resolved are <i>unqualified</i>.
+In particular, emails from the large webmail providers (<i>aol</i>,
+<i>hotmail</i>, <i>yahoo</i>, <i>gmx</i>, <i>t-online</i> ...)
+have always to be send from qualified MTAs. Reversely, you can
+safely reject emails with those Originator hostparts, which can
+not be resolved <b>tcpserver</b>/<b>sslserver</b> records them
+as "unkonwn".</p>
+
+<p>With SPAMCONTROL's <i>badmailfrom</i> implementation, you simply
+include the Originator addresses for which you enforce a qualified
+TCPREMOTEINFO into<u> control/badmailfrom</u> in the following
+way appending a dash ("-"):</p>
+
+<dl>
+  <dd><tt>@aol.com-</tt></dd>
+  <dd><tt>@hotmail.com-</tt></dd>
+  <dd><tt>@yahoo.com-</tt></dd>
+  <dd><tt>@gmx.de-</tt></dd>
+</dl>
+
+<p><u>Note 1</u>: Since <b>tcp-env</b>/<b>tcpserver</b>/<b>sslserver</b>
+relies on a qualified DNS lookup, it is certainly helpful to use
+DJBDNS' <b>dnscache</b> as frontend.<br>
+<u>Note 2</u>: Wildmat support is not provided; thus an
+entry "<tt>@*.yahoo.com-</tt>" won't work.</p>
+
+<h4>2.3.4 badmailfromwellknown Checks</h4>
+
+<p>In particular for webmailer (ie. hotmail.com, yahoo.com) the
+domain-part of the provide <tt>Mail From: </tt>address coincides
+with the provided domain name in <tt>TCPREMOTEHOST</tt>. Enforcing
+coincidence can be achieved for addresses appended with an equal-sign
+("=") in <u>control/badmailfrom</u>:</p>
+
+<dl>
+  <dd><tt>@t-online.de=</tt></dd>
+</dl>
+
+<p>Receiving a Mail From: address like "max.mustermann@t-online.de"
+will only be accepted if <tt>TCPREMOTEHOST</tt> ends with "t-online.de",
+for instance "mailout03.t-online.de". Otherwise, the
+email will be rejected by <b><i>badmailfrom</i></b>.</p>
+
+<h4>2.3.5 badmailfrommismatcheddomains</h4>
+
+<p>Reversely to <i>badmainfromwellknown</i> now the MTA and it's FQDN
+is considered in the first place. <br>
+Thus, if you receive emails from <tt>mx1.yahoo.com</tt> you may
+require that the provided <tt>Mail from:</tt> address matches <tt>yahoo.com</tt>.</p>
+
+<p>In order to enforce this, within <u>control/badmailfrom</u> you define
+extended (domain) addresses with a leading similar-sign ("~"):
+
+<dl>
+  <dd><tt>~yahoo.com</tt></dd>
+</dl>
+
+<p><u>Caution:</u> It should be noted, that this filter is not in accordance with 
+RFC 2821, since it couples the SMTP envelope with the domain of the sender.
+For example, <tt>yahoo</tt> uses DKIM records to label allowed envelope addresses
+for their domain. Further, this entry does not affect the '<tt>Mail From:</tt>' address
+in the first place, but rather the value of <tt>TCPREMOTEHOST</tt>.</p>
+
+
+<h4>2.3.6 badmailfrom Anti-Spoofing</h4>
+
+<p>Another special case is given, rejecting none-Relayclient emails
+with Originator addreses spoofing your domain name or email addresses.
+Email can be rejected if the "responsible domains" are
+included with a trailing plus ("+") in the following
+way into <u>control/badmailfrom</u>:</p>
+
+<dl>
+  <dd><tt>god@mydomain1.com+</tt></dd>
+  <dd><tt>@mydomain2.net+</tt></dd>
+  <dd><tt>@mydomain3.org+</tt></dd>
+</dl>
+
+<h4>2.3.7 badmailfrom Test by-passing</h4>
+
+<p>Under some conditions, it might by necessary to by-pass
+all reqular <u>badmailfrom</u> checks and in addition 
+the <tt>MFDNSCHECK</tt>. 
+For this purpose, individual email addresses included in
+<u>badmailfrom</u> and enhanced with a leading question mark ("?")
+can be defined. While recognizing this address, <b>qmail-smtpd</b>
+will skip all further tests:</p>
+
+<dl>
+  <dd><tt>?nobody@example.com</tt></dd>
+</dl>
+
+<p><<u>Note</u>: The enhanced addresses don't allow wildcarding.</p>
+
+<h3>2.4 Controlling the Rcpt To: SMTP dialogue and Filtering the
+Recipient Address</h3>
+
+<p>Apart for the RECIPIENTS mechanism, which is detailed later,
+you can reject SMTP Recipient addresses (Rcpt To: &lt;Recipient&gt;)
+by means of <u>control/badrcptto</u>. However, <b>qmail-smtpd</b>
+lets you effectively</p>
+
+<ul>
+	<li>reject emails included in <u>control/badrcptto</u>,</li>
+	<li>reversely accept only those recipients whitelisted in <u>control/badrcptto</u>,</li>
+	<li>control the number of accepted Recipients 
+		by means of the environment variable <tt>MAXRECIPIENTS</tt>,</li>
+	<li>enforcing TARPITTING if too many Rcpt To:'s have been encountered.</li>
+</ul>
+
+<p><b><u>Note</u></b>: The provided Rcpt To: &lt;Recipient&gt;
+information by the SMTP client is (apart from it's IP/FQDN) the
+only information which can not be faked, though these addresses
+are today often randomly generated by means of lexical/dictionary
+attacks by spammers or gathered by address harvesting. Standard
+qmail will accept any addresses which matches an entry in <u>control/rcpthosts</u>
+or <u>control/morercpthosts.cdb</u> and in case the Recipient
+does not exist tires to bounce the email to the Originator after
+<u>control/qeueulifetime</u> has exceeded (default one week).</p>
+
+<h4>2.4.1 badrcptto</h4>
+
+<p>By populating <u>control/badrcptto</u> you reject emails to
+Recipients listed there in already in the SMTP session. Wildcards
+are allowed. If you don't wont to receive emails for <i>root</i>
+(from the Internet) include in <u>control/badrcptto</u>:</p>
+
+<dl>
+  <dd><tt>root@*</tt></dd>
+</dl>
+
+<h4>2.4.2 badrcptto Whitelisting</h4>
+
+<p>Alternatively to the Recipients mechanism, as a side-effect
+of the wildmat filtering, you can use the <u>control/badrcptto</u>
+file as an effective <i>whitelisting</i> mechanism. The trick
+is, to initially reject everything while later to allow specific
+Recipients:</p>
+
+<blockquote>
+  <p><tt>*<br>
+  !*@otherdomain.com<br>
+  !user1@mydomain.com<br>
+  !user2@mydomain.com</tt></p>
+</blockquote>
+
+<p><b><u>Note:</u></b> The evaluation of <u>control/badrcptto</u>
+is done independent from the setting of the RELAYCLIENT environment
+variable.</p>
+
+<h4>2.4.3 Restricting the number of Recipients</h4>
+
+<p>The environment variable</p>
+
+<dl>
+  <dd><tt>MAXRECIPIENTS</tt></dd>
+</dl>
+
+<p>can be used to restrict the number of counted "Rcpt To:
+"s in the SMTP session. By default, no restriction is facilitated.</p>
+
+<h4>2.4.4 Tarpitting</h4>
+
+<p>I have included Chris Johnson's TARPITTING patch into SPAMCONTROL:</p>
+
+<p>"What is tarpitting? It's the practice of inserting a
+small sleep in a SMTP session for each "Rcpt To:" after
+some set number of "Rcpt To:"s. The idea is to that
+spammers who would hand your SMTP server a single message with
+a long list of RCPT TOs. If a spammer were to attempt to use your
+server to relay a message, say, 10,000 Recipients, and you inserted
+a five-second delay for each Recipient after the fiftieth, the
+spammer would be 'tarpitted', and would most likely assume that
+the connection had stalled and give up."</p>
+
+<p>Typically, the environment variables <tt>TARPITCOUNT</tt> and
+<tt>TARPITDELAY</tt> are set by menas of tcpserver's default-allow
+rules:</p>
+
+<blockquote>
+  <pre>:allow,TARPITCOUNT=5,TARPITDELAY=20.</pre>
+</blockquote>
+
+<p>TARPITCOUNT denotes the number of sessions before starting
+the TARPITDELAY, which defaults 5 seconds.</p>
+
+<p>&nbsp;</p>
+<hr align="left">
+<p>&nbsp;</p>
+
+<h2><A NAME="Recipients">3. Recipients Extension</h2>
+
+<h3>3.1 Scope</h3>
+
+<p><b>qmail-smtpd </b>accepts messages if the SMTP domain part
+of Recipient address ("<tt>Rcpt to: &lt;recip@domain&gt;</tt>")
+matches an entry in <u>control/rcpthosts</u> or <u>control/morercpthosts.cdb</u>.
+The existence of a mailbox/maildir for the corresponding SMTP
+Recipient is checked later in the delivery chain. In case no Mailbox/Maildir
+exists, the message is bounced back to the SMTP Sender ("<tt>Mail
+From: &lt;send@example.com&gt;</tt>").</p>
+
+<p>For normal SMTP mail traffic that's fine as long as the rate
+of undeliverable messages don't exceed 10% and the Sender is 'legitmate';
+ie. exists. Today's situation is different: Spam and Virus attacks
+with forged/faked Sender addresses to a bunch of random Recipient
+addresses yield an undeliverable rate up to 90%. Worse, the generated
+bounces will never reach the Sender and a double-bounce is eventually
+send to the postmaster.</p>
+
+<h3>3.2 qmail-smtpd Recipients</h3>
+
+<p>The RECIPIENTS extension makes <b>qmail-smtpd</b> aware of
+acceptable recipients, which are fetched from an external source.<br>
+Which source to query depends on the domain-part of the recipient
+address.</p>
+
+<ul>
+	<li>The recipients are kept either in '<b>fastforward</b>' compatible
+		cdbs for quick lookup during the SMTP session, or  </li>
+	<li>are available by means of a '<b>checkpassword</b>' compatible
+	<b><i>Plugable Authentication Module (PAM)</i></b>.</li>
+</ul>
+
+<p>The RECIPIENTS check is done only in a none-RELAYCLIENT case
+and after <u>control/rcpthosts</u>, <u>control/morercpthosts.cdb</u>
+has been successfully consulted.</p>
+
+<h4>3.2.1 VERP Support</h4>
+
+<p>The RECIPIENTS mechanism supports natively Qmail's address
+extensions (VERP). If a recipient address like 'foo@mydomain.com'
+defined, all VERP addresses like 'foo-bar@mydomain.com' are accepted
+for SMTP reception.</p>
+
+<h4>3.2.2 Domain recognition and Wilddomain Support</h4>
+
+<p>The RECIPIENTS lookup is triggered by the recipient domain,
+thus is domain-specific. You can specify which lookup is performed<br>
+per domain within <u>control/recipients</u>. Consider the following:<br>
+</p>
+
+<ul>
+	<li>An entry 'example.com' is used to match 'example.com' and
+		in addition all subdomain addresses '*.example.com'; <br>
+		depending or course&nbsp;on&nbsp;c<u>ontrol/rcpthosts</u>.  </li>
+	<li>An entry '@example.com' serves as <i>exact</i> match for
+		the domain address.  </li>
+	<li>The entry '*' will match all domains for the respective lookup.  </li>
+	<li>Reversely, domains flagged as '!domain.com' are not queried
+		and all recipients for this domain are accepted.</li>
+</ul>
+
+<p><b><u>Compatibility Note</u>: </b>Due to this new syntax, the
+old RECIPIENTS (version 0.4x) wilddomain support (as part of the
+cdb) is not supported anymore.</p>
+
+<h4>3.2.3 Fail-Open Operation</h4>
+
+<p>The RECIPIENTS extension can be used in a 'fail-closed' or
+'fail-open' mode for the domains included in <u>control/recipients</u>.<br>
+Typically the recipient check is done 'fail-closed', thus if all
+queries are negative, the incoming email with this recipient address
+will be rejected.</p>
+
+<blockquote>
+  <p>A 'fail-open' behaviour can be achieved adding '!*' as last
+  statement in <u>control/recipients</u>. <br>
+  Thus, emails for domains not listed in <u>control/recipients</u>
+  will finally be accepted.</p>
+</blockquote>
+
+<h4>3.2.4 Smart Rejections/Tarpitting Reloaded</h4>
+
+<p>Defining a <tt>TARPITCOUNT</tt> can be used to terminate the
+SMTP session if the number of invalid Recipients ("Rcpt to:")
+exceeds the <tt>TARPITCOUNT</tt>. Unlike the typical tarpitting
+mechanism, this is a hard limit (Smart Rejection).</p>
+
+<ul>
+	<li>All invalid RECIPIENT addresses will be rejected.  </li>
+	<li>However, the client can continue with the DATA command and  </li>
+	<li>finally emails received to valid Recipients encountered before
+	will be accepted and queued.</li>
+</ul>
+
+<p>However, defining a <tt>TARPITCOUNT</tt> together with a <tt>TARPITDELAY
+&lt; 0</tt> acts as 'tarpitting reloaded':</p>
+
+<ul>
+	<li>All invalid RECIPIENT addresses will be rejected in the first  place.  </li>
+	<li>If the <tt>TARPITCOUNT</tt> limt has been exaggerated, the
+		DATA command will not be honored.  </li>
+	<li>Thus emails from notorious Sender will not be accepted.  </li>
+	<li>This information will survive SMTP Resets.</li>
+</ul>
+
+<h3>3.3. Setting up the recipients control file</h3>
+
+<p>Release 0.5 the RECIPIENTS extension provides a flexible new
+syntax to interprete <u>control/recipients</u> on a domain base,
+as part of the RCPT TO: envelope address.</p>
+
+<ul>
+	<li><i>Legacy</i>: <br>
+		Put 'recipients.cdb' into <u>control/recipients</u>. This is
+		a backward compatible mode.  </li>
+	<li><i>Per Domain cdbs</i>: <br>
+		Put 'example.com:example.cdb' in <u>control/recipients</u> and
+		you advise the RECIPIENTS extension to do a per-domain lookup.  </li>
+	<li><i>Global cdbs</i>: <br>
+		Use '*:users/recipients.cdb' in <u>control/recipients</u>. This
+		is equivalent to (1.).  </li>
+	<li><i>Per Domain PAM</i>: <br>
+		Put 'example.com|ldap_pam.pl &lt;ldaphost&gt;' into <u>control/recipients
+		</u>and the RECIPIENT extension will use the program defined
+		after the "|" to check the existence of the provided  RCPT TO.  </li>
+	<li><i>Goblal PAM</i>: <br>
+		Put '*|ldapam myldapserver' into <i>control/recipients </i>and
+		you delegate the entire verification of the RCPT TO to the program
+		in charge.  </li>
+	<li><i>Wildcarded domain</i>: <br>
+		Prepend the domain name with a '!' and emails for this domain
+		will be entirely accepted: '!localhost'.  </li>
+	<li><i>Pass-Thru for unlisted domains</i>:<br>
+	Use '!*' as last statement in <u>control/recipients</u>.</li>
+</ul>
+
+<p>Lines in <u>control/recipients </u>starting with a '#' are
+not evaluated, thus are treated as comment lines.</p>
+
+<p>Read 'man qmail-smtpd' and 'man qmail-recipients.' Some additional
+scripts can be found in doc.</p>
+
+<h3>3.4. Generating a cdb with recipient addresses</h3>
+
+<ul>
+	<li>Build a list of recipients (with full qualified address):
+	<ul>
+		<li>Use '<b>qmail-pwd2recipients'</b> to build this list for
+		local system users.    </li>
+		<li>Use '<b>qmail-alias2recipients</b>' to build this list for
+			<i>qmail alias users</i> (ie. postmaster, root).    </li>
+		<li>Use '<b>qmail-users2recipients</b>' to build this list for
+		<i>qmail users</i> (as per <u>users/assign</u>).    </li>
+		<li>You can use '<b>qmail-vpopmail2recipients</b>' for <i>vpopmail</i>
+			users.  </li>
+	</ul>
+	</li>
+</ul>
+
+<blockquote>
+  <p>Verify that list to be found under users/recipients.</p>
+  <p>If you have a different Qmail home directory, modify the above
+  scripts.</p>
+  <p>You may need to change "localhost" in the above
+  scripts to the real hostname.</p>
+</blockquote>
+
+<ul>
+	<li>Run <b>qmail-recipients </b>to transform that list into a  cdb:
+	<ul>
+		<li><u>users/recipients.cdb</u></li>
+	</ul>
+	</li>
+	<li>After the successful generation of the <u>recipients.cdb</u>
+	<ul>
+		<li>you can rename it to your taste.  </li>
+	</ul>
+	</li>
+	<li>Edit <u>control/recipients</u> and
+	<ul>
+		<li>include <u>users/recipients.cdb </u>therein.  </li>
+	</ul>
+	</li>
+	<li>If you have '<b>fastforward</b>' cdbs (those which are generated
+		by '<b>setforward</b>')
+	<ul>
+		<li>you have to place the output somewhere in a subdirectory
+			under Qmail's home directory and include those into <u>control/recipients</u>.  </li>
+		<li>At that time, your <u>control/recipients</u> file may look like:
+			<dl>
+			<dd><tt>mydomain.com:control/mydomain.cdb<br>
+			users/recipients.cdb<br>
+			etc/fastforward.cdb</tt>
+			</dd>
+			</dl>
+		</li>
+	</ul>
+	</li>
+	<li>You can add an arbitary number of cdbs to control/recipients.
+	<ul>
+		<li>Any change regarding control/recipients and/or the content
+			of the cdbs is effective on the fly.	</li>
+	</ul>
+	</li>
+	<li>If you run EZMLM, you have to set up a list of recipient
+		addresses for all your mailing lists.
+	<ul>
+		<li>Simply put the full qualified list name into recipients;    </li>
+		<li>the <b>qmail-smtpd</b> RECIPIENTS extension supports EZMLM
+			VERPs usage.  </li>
+	</ul>
+	</li>
+</ul>
+
+<h3>3.5. Requirements for a checkpassword compatible PAM</h3>
+
+<p>The <b>checkpassword</b> API is defined in:</p>
+
+<blockquote>
+  <p><a href="http://cr.yp.to/checkpwd/interface.html">http://cr.yp.to/checkpwd/interface.html</a></p>
+</blockquote>
+
+<p>and typically consists of the string:</p>
+
+<blockquote>
+  <p><tt>username\0password\0timestamp\0otherdata\0</tt></p>
+</blockquote>
+
+<p>written to file descriptor 3 (FD 3) to be read by the <b>checkpassword</b>
+compatible PAM.</p>
+
+<p>For email address (recipient) verification, we replace</p>
+
+<blockquote>
+  <p><tt>username\0</tt></p>
+</blockquote>
+
+<p>with</p>
+
+<blockquote>
+  <p><tt>email-address\0</tt></p>
+</blockquote>
+
+<p>ie.</p>
+
+<blockquote>
+  <p><tt>recipient@domain.tld\0</tt></p>
+</blockquote>
+
+<ul>
+	<li>The PAM fetches this information and checks for it's existance
+		in any external resource, for example a LDAP<br>
+		directory or a SQL database. </li>
+	<li>The PAM returns a '0' in case of successful verification,
+		otherwise a '1'; and perhaps a '111' in case of problems.</li>
+	<li>RECIPIENT's <b>checkpassword</b> API allows to enter up to
+		five additional arguments; which are specific to the PAM.</li>
+</ul>
+
+<p>The attached PERL <b>ldap_mail.pl </b>serves as a sample.</p>
+
+<p><b><u>Note</u></b>: The PAM has to be either in the Unix <tt>$PATH</tt>
+or explicitely defined in <u>control/recipients</u>.</p>
+
+<h3>3.6. Calling a PAM from the recipients file</h3>
+
+<p>The general syntax invoking a PAM from <u>control/recipients</u> follows the
+principals invoking a cdb. However, the triggering token is a '<tt>|</tt>'
+and the PAM may be accompanied by at most five (5) arguments separated by white spaces:</p>
+
+<dl>
+	<dd><tt>@mydomain.com|/usr/local/bin/ldap_pam.pl -h:ldap.mydomain.com -d:admin -p:secret<br>
+	customer.com|bin/qmail-smtpam exchange.customer.com<br>
+	global.net|/usr/local/bin/ldapam -h:ldap.global.net -d:admin -p:topsecret<br>
+	!*</tt>
+	</dd>
+</dl>
+
+<ul>
+	<li>The first line tells <b>qmail-smtpd</b> to invoke the standard <b>ldap_pam.pl</b>
+		in case the recipients's domain part matches <i>exactly</i> 'mydomain.com' and
+		tries to verify the local part of the recipient address from the LDAP directory server
+		named 'ldap.mydomain.com' while doing a simple bind with DN 'admin' and password 'secret'. <br>
+		<u>Note</u>: Usually the DN is more complicated and in particular a certain search-base is 
+		necessary.
+	</li>
+	<li>The second line tries to connect to an Exchange server by means of the 
+		<b>qmail-smtpam</b> at 'exchange.customer.com' in case
+		a subset of the recipients' remote part matches 'customer.com'. This includes in particular
+		a potential user named 'postmaster@exchange.customer.com'. 
+	</li>
+	<li>It should be noted, that in both cases above, several PAMs and perhaps several target systems 
+		might be defined for the lookup of the very same domain. 
+		In particular for case two, several Exchange servers can be specified as redundancy. 
+		In case the first one is not responsive, the next one is tried. 
+	</li>
+	<li>The third line tries to find any other recipients targeting 'global.net' 
+		in the 'global' directory server at 
+		'ldap.global.net' using a customized LDAP PAM named 'ldapam'.
+	</li>
+	<li>Finally, the last line '<tt>!*</tt>' tells <b>qmail-smtpd</b> to accept 
+		<i>any other recipients for domains</i> 
+		not been explicitly listed before.
+	</li>
+</ul>
+
+<h3>3.7. The ldap_pam.pl</h3>
+
+<p>The <b>ldap_pam.pl</b> is a PERL script using the PERL library
+<tt>'Net::LDAP'</tt> from <tt>http://www.cpan.org</tt> while providing
+simple and TLS encrypted (strong) <i>binds</i> to an LDAP directory server.</p>
+
+<h4>3.7.1 Syntax of the ldap_pam.pl</h4>
+
+<p><tt>ldpap_pam.pl -h:host:port -d:DN -w:password -b:base -s:scope -c:certificate -l(ogging) -ll</tt></p>
+
+<ul>
+	<li>The <i>bind</i> is realized for <u>host</u>. </li>
+	<li>The default <u>port</u> is <tt>389</tt> in
+		case of a simple bind and <tt>636</tt> once a certificate is provided (strong bind). <br>
+		Other ports can be specified.</li>
+	<li>In case of a simple bind, the <i>Distinguished Name</i> <u>DN</u> of a (technical)  
+		LDAP user and it's <u>password</u> has to be provided.</li>
+	<li>For for the strong bind, additionally a <u>certificate</u> needs to be presented. <br>
+		The file <u>certificate</u> includes both the <i>X.509 certificate</i> and
+		the un-encrypted <i>keyfile</i>.<br>
+		<u>Note</u>: This feature is untested and needs certainly refinements.
+		It should be considered, that any TLS encrypted connection to the 
+		LDAP directory is time- and computing intensive. By definition, the
+		email addresses stored in the LDAP are public information by definition.</li>
+</ul>
+
+<p>The <b>ldap_pam.pl</b> shall be considered as prototype only. Due to the large
+variety of LDAP servers and possibilities to store the information into and to fetch
+it from the directory, there is the need for specific customization. 
+Logging might be activated in two steps.</p></p>
+
+<h4>3.7.2 Fetching the RCPT TO: information from the LDAP directory </h4>
+
+Customization for the LDAP server:
+
+<ul> 
+	<li>The (technical) user -- identified by it's DN and at least with simply bind
+		credentials provided by it's password -- needs to have (reed) access for all 
+		relevant entries with the LDAP attribute <tt>mail</tt> while using the search path 
+		<u>base</u> with the provided <u>scope</u>. </li>
+	<li>In case other attributes may be retrieved,
+		those can be specified in the PAM. 
+	<li>Take care about multi-attribute and attributes 
+		including multi-recipient addresses and case-sensitivity (of the local part 
+		of the mail address).</li>
+</ul>
+
+<h3>3.8. qmail-smtpam</h3>
+
+<p>The additional module <b>qmail-smtpam</b> is a generic part of SPAMCONTROL and 
+can be considered as stripped-down version of <b>qmail-remote</b> providing the first
+steps of the email dialoge using the standard <tt>Helo</tt> message, a
+Nullsender <tt>Mail From:</tt> address, and finally the provided the <tt>Rcpt To:</tt> 
+address available on FD 3. 
+<br>Once it receives the SMTP return code, it exits either with '0' in case of a '250' 
+positive reply, a '1' in case of a failure, or a '111' realizing communication problems.</p>
+
+<p><b>qmail-smtpd</b> thus uses a standard SMTP dialoge without advanced features, though
+complying to RFC 821 while using the canonical name for <u>host</u> to connect to.</p>
+
+<h3>3.9 Customization</h3>
+
+<p>The Recipients extension needs no customization except for
+the following circumstances:</p>
+
+<dir>
+	<li><i>Compile-time options:</i>
+	<ul>
+		<li>Your Qmail address extension string is not '<tt>-</tt>'.
+		This can be modified in <tt>recipients.c</tt> (<tt>#define AUTO_BREAK</tt>).</li>
+		<li>You dont want the Recipients extension to support Qmail's
+			VERP mechanism. This is controlled via "<tt>verp=yes</tt>"
+			in<u>conf-spamcontrol</u> instead the default 'no'.</li>
+		<li>If in case in a PAM lookup the PAM returns with a '111',
+		the email will rejected for temporary reasons; changing 'pam111421=no'
+		in <u>conf-spamcontrol</u> will accept the email, however.</li>
+	</ul>
+	</li>
+	<li><i>Run-time options:</i>
+	<ul>
+		<li>Since some MTAs (namely Exchange) interprete a SMTP 450 reply
+			to try to deliver the email even more frequently, the default
+			behavior of <b>qmail-smtpd</b> is now to issue a 550 SMTP reply
+			resulting in a "<tt>550, sorry no mailbox by that name (#5.7.1)</tt>"
+			message. The advantage is, that a potential Sender receives a
+			quick bounce with the propper reason, instead a deferred one.
+			The disadvantage is, that this might be used for address harvesting </li>
+		<li>However, setting the environment variable RECIPIENTS450 in
+			case the Recipients check is negative, <b>qmail-smtpd</b> issues
+			the error: "450 sorry, mailbox currently unavailable (#4.2.1)".</li>
+	</ul>
+	</li>
+	<li><i>Optional scripts:</i>
+	<ul>
+		<li>You may need to adjust the provided scripts <b>qmail-pwd2recipients</b>,
+		<b>qmail-users2recipients</b>, and <b>qmail-alias2recipient</b>
+		to your need; these are samples.</li>
+	</ul>
+	</li>
+</dir>
+
+<h3>3.10 Results</h3>
+
+<p>With the Recipients extension <b>qmail-smtpd</b> will act for
+none-RELAYCLIENTs like follows</p>
+
+<dl>
+	<dd>
+	a) The domain part of the Recipient address is checked against
+	<u>rcpthosts/morercpthosts.cdb </u>and accepted if either it
+	matches or the domain is not provided.
+	</dd>
+	<dd>
+	b) the Recipient address is checked against all readable
+	sources as listed in<tt> </tt><u>control/recipients</u> and accepted
+	if
+	<ul>
+		<li>either the entire address matches, </li>
+		<li>a VERP-part of the address matches, </li>
+		<li>the domain part of address is wildcarded or, </li>
+		<li>for the unqualified address an entry exist in the form '<tt>user@localhost'</tt>,  or</li>
+		<li>perhaps, the fall-through statement '!*' is finally provided.</li>
+	</ul>
+	</dd>
+</dl>
+
+<p>In any other case, a SMTP temporary failure protocol error
+is issued to the client saying:</p>
+
+<ul>
+	<li>"<tt>550 sorry, mailbox currently unavailable (#5.7.1)"</tt>  unless  </li>
+	<li>the environment variable <tt>RECIPIENTS450</tt> is specified
+		and <b>qmails-smtpd</b> issues the rejection message "<tt>450,
+		sorry no mailbox by that name (#4.2.1)</tt>"</li>
+</ul>
+
+<p>&nbsp;</p>
+<hr align="left">
+<p>&nbsp;</p>
+
+<h2><A NAME="Message">4. Filtering E-Mails on behalf of the Message Content</h2>
+
+<p>Based on the "qmail-smtp-viruscan-1.1.patch" by Russell
+Nelson (and Charles Cazabon), SPAMCONTROL includes my WARLORD
+extension, which is a much robuster and efficient filter for BASE64
+encoded MIME attachments and bundled with the Qmail High Performance
+Scanner Interface (QHPSI):</p>
+
+<dir>
+	<li>BASE64 encoded MIME attachments are detected and can be filtered
+		accordingly to an easily extendable <tt>badmimetypes</tt> file. </li>
+	<li>Within the BASE64 encoded MIME attachments so-called specific
+		loader assignments (ie. for Windows OS) can be detected and messages
+		- containing these suspicious <i>badloadertypes</i> patterns  - are rejected.</li>
+	<li>Additional and optional on-the-fly scanning of emails through  the QHPSI.  </li>
+	<li>Initial <i>badmimetype</i> or <i>badloadertype</i> flagged
+		messages are not subject of the QHPSI.  </li>
+	<li>Employing the environment variable <tt>BASE64,</tt> QHPSI
+		is advised to by-pass virus scanning if no BASE64 encoded attachment  is found.</li>
+</dir>
+
+<p>In case a <i>badmimetype</i> or <i>badloadertype</i> filter
+condition is met or a virus is detected, <b>qmail-smtpd </b>sends
+a SMTP 554 reply to the sender "<tt>554 sorry, invalid message
+content (#5.3.2)</tt>". Populating the <tt>REPLY554</tt>
+environment variable, allows to include additional information
+(typically an URL), which can be used to deal with potential false-positives.</p>
+
+<h3>4.1 The BADMIMETYPE-Filter</h3>
+
+<p>The <u>badmimetype</u> filter becomes active if</p>
+
+<dir>
+	<li>the environment variable <tt>BADMIMETYPE=""</tt>is set </li>
+	<li>and the control file <tt>badmimetypes</tt> is populated and
+		readable by <b>qmail-smtpd</b>.</li>
+</dir>
+
+<h3>4.2 Control file badmimetypes and badmimetypes.cdb</h3>
+
+<p>The control file <u>control/badmimetypes.cdb</u> is populated
+by the additional program <b>qmail-badmimetypes</b> which takes
+the input of <u>control/badmimetypes</u>. New MIME signatures
+can be added/removed on-the-fly. Bad MIME Type signatures have
+to have the length of at least 9 significant characters.</p>
+
+<p>The currently included MIME signatures are:</p>
+
+<dl>
+  <dd><tt>TVqQAAMAA<br>
+  TVpQAAIAA<br>
+  TVpAALQAc<br>
+  TVpyAXkAX<br>
+  TVrmAU4AA<br>
+  TVrhARwAk<br>
+  TVoFAQUAA<br>
+  TVoAAAQAA<br>
+  TVoIARMAA<br>
+  TVouARsAA<br>
+  TVrQAT8AA</tt>
+  </dd><dd><tt># *.zip<br>
+  # UEsDBAkAA<br>
+  # *.z (gnu-zip)<br>
+  # H4sIADWWb<br>
+  # double Base 64 Windows Executable<br>
+  VFZxUUFBT<br>
+  # triple Base 64 Windows Executable<br>
+  VkZaeFVVR</tt>
+  </dd><dd><tt># Pif File<br>
+  TVoAAAEAA<br>
+  # Bagle Virus<br>
+  ZGltIGZpb</tt>
+</dd></dl>
+
+<p>Adding new <tt>badmimetypes</tt> is simple:</p>
+
+<ol>
+	<li>Send an E-Mail to a Unix account with corresponding attachment
+		(i.e. *.zip).  </li><li>Use an editor to view the E-Mail and spot the corresponding
+		BASE64 encoded content-type.  </li>
+	<li>Take the first nine significant characters (for type "zip"
+		its "UEsDBAkAA") and include them into <u>control/badmimetypes</u>.  </li>
+	<li>Run <b>qmail-badmimetypes</b>.</li>
+</ol>
+
+<p>Comments (starting with "#") are allowed in <tt>badmimetypes</tt>;
+the length of the signature will be truncated to nine characters.</p>
+
+<h3>4.3 The BADLOADERTYPE-Filter</h3>
+
+<p>The <u>badloadertype</u> filter becomes active if</p>
+
+<dir>
+	<li>the environment variable <tt>BADLOADERTYPE="M"</tt>
+		is set (see below)  </li>
+	<li>and the control file <tt>badloadertypes</tt> is populated
+		and readable by <b>qmail-smtpd</b>.</li>
+</dir>
+
+<p>The BADLOADERTYPE mechanism deals in particular with "transport
+stealth" worms, ie. UPX encoded Windows executables.</p>
+
+<h3>4.4 Control file badloadertypes and badloadertypes.cdb</h3>
+
+<p><u>badloadertypes.cdb</u> is populated by the additional program
+<b>qmail-badloadertypes</b> which takes the input of <u>control/badloadertypes</u><tt>
+</tt>The <i>badloadertype</i> mechanism looks for five significant
+strings in the BASE64 encoded data-stream which is matched against
+an entry in <u>control/badloadertypes.cdb</u>. <i>badloadertype</i>
+signatures can be added/removed on-the-fly.</p>
+
+<p>The currently included Windows OS <i>badloadertype</i> signatures
+are:</p>
+
+<dl>
+  <dd><tt>Mi5kb<br>
+  MzIuZ<br>
+  MyLmR<br>
+  MyLkR</tt>
+</dd>
+</dl>
+
+<p>Comments (starting with "#") are allowed in <tt>badloadertypes</tt>;
+the length of the signature will be truncated to five characters.</p>
+
+<p><b><u>Caution:</u></b> Unlike the <u>badmimetype</u>, the <u>badloadertype</u>
+signatures are placed anywhere in the BASE64 encoded datastream
+and are difficult to find out. In order to make the search efficient,
+a common character has to be providen in the environment variable
+<tt>BADLOADERTYPE. </tt>The provided pattern look basically for
+a string like "32.dll" as a subpart of "Kernel32.dll"
+which is an indication for an executable for the Windows OS. However,
+there is a small chance for false positives. Some - lets say -
+Word document attached as BASE64 MIME part in the message containing
+the buzz words "kernel32.dll" might become flagged and
+finally rejected as well.</p>
+
+<h3>4.5 Employing an AV Scanner with QHPSI</h3>
+
+<p>Unlike all other AV Scanners currently in use for Qmail, with
+Qmail High Performance Scanner Interface (QHPSI) there is no need
+for any other umbrella program, neither <b>qmail-scanner</b>,
+<b>AMAViS</b>, <b>qscanq</b> or whatsoever. Further, no additional
+MIME analyzing program like <b>reformime</b>, <b>metamail</b>,
+or <b>ripmime</b> is required. Even better, no "staging"
+area for temporary files are needed, except the one, the AV Scanners
+requires for itself.</p>
+
+<p>Today's AV Scanners - and in particular Clam AV - are able
+to read the BASE64 encoded message and eventually dig out the
+files in archives, ie. in zip format. In order to use an AV Scanner
+with QHPSI, the AV Scanner has to have the following qualifications:</p>
+
+<ul>
+	<li>Correct interpretation of the BASE64 and perhaps the uudecoded
+		data in order to detect the virii/worms therein.  </li>
+	<li>Results have to be made available on STDERR/STDOUT.  </li>
+	<li>(And perhaps) Suppression of 'negative' scan results.</li>
+</ul>
+
+<p>The QHPSI allows to use the following environment variables:</p>
+
+<ul>
+	<li><tt>QHPSI="av_scanner"</tt> - this is the path
+		to the involved AV Scanner.  </li>
+	<li><tt>QHPSIARG1, QHAPSIARG2, QHPSIARG3</tt> - to call the AV
+		Scanner with three arbitrary arguments.  </li>
+	<li><tt>QHPSIRC="RC"</tt> - if the AV Scanner does
+		not return with RC=1 in case of a detected infection, you can
+		specify one here.  </li>
+	<li><tt>QHPSIMINSIZE="size-in-bytes"</tt> - the minimum
+		size of the message to scan.  </li>
+	<li><tt>QHPSIMAXSIZE="size-in-bytes"</tt> - the maximum
+		size of the message to scan.</li>
+</ul>
+
+<p>The AV Scanner is directly called in the start scripts of Qmail
+(i.e. the <tt>run</tt> script for <b>qmail-smtpd</b>) or by means of <b>tcpserver</b>'s
+capabilities. Here is a typical example, how to customize QHPSI
+together with Clam AV (<b>clamd</b>/<b>clamdscan</b>) for a <b>tcpserver</b>
+<u>tcp.smtpd</u> file:</p>
+
+<dl>
+  <dd>:<tt>allow,QHPSI='clamdscan',QHPSIARG1='--disable-summary'</tt>
+</dd></dl>
+
+<p><b><u>Comments</u></b>:</p>
+
+<ul>
+	<li>The path of <b>clamdscan</b> can be omitted, because it is
+		in the standard path (/<tt>usr/local/bin</tt>).  </li>
+	<li>The argument QHPSIARG1='--disable-summary' tells Clam AV
+		to provide a single line output of the scan results.  </li>
+	<li>In <b>clamd</b>'s <tt>clamav.conf </tt>configuration file
+		the "Mail support" has to be enabled, <b>clamd</b>
+		has to run as <i>root</i>.</li>
+</ul>
+
+<p><b><u>Note</u></b>:</p>
+
+<ul>
+	<li><b>qmail-start</b> does not pass environment variables to
+		<b>qmail-queue</b>.  </li>
+	<li>If you need to scan in addition outgoing emails, you have
+		to write a wrapper for e.g. <b>qmail-inject</b>:</li>
+</ul>
+
+<dl>
+  <dd><tt>#!/bin/sh<br>
+  export QHPSI='clamdscan'<br>
+  export QHPSIARG1='--disable-summary'<br>
+  exec /var/qmail/bin/qmail-queue</tt>
+</dd>
+</dl>
+
+<h4>4.5.1 QHPSI SMTP Reply messages</h4>
+
+<p><b><u>Results</u></b>:</p>
+
+<ul>
+	<li>In case a client sends an infected email by means of SMTP,
+		it receives the SMTP return code and error message: "<tt>554
+		mail server permanently rejected message (#5.3.0)</tt>"  </li>
+	<li>In case the virus scanner can not be called properly or has
+		an internal problem, the following SMTP message is given: "4<tt>54
+		mail server temporarily rejected message (#4.3.0)</tt>"  </li>
+		<li>Eventually, the scan results show up in the logs.</li>
+</ul>
+
+<h4>4.5.2 QHPSI logging</h4>
+
+<p>Here is a sample of Clam AV without and with the argument "--disable-summary":</p>
+
+<dl>
+  <dd><tt>@... tcpserver: pid 49943 from 192.168.192.11<br>
+  @... tcpserver: ok 49943 qmailer.fehnet.de:192.168.192.2:25 arkon.fehnet.de:192.168.192.11::1074<br>
+  @... /var/qmail/queue/mess/4/89439: Worm.Klez.H FOUND<br>
+  @...<br>
+  @... ----------- SCAN SUMMARY -----------<br>
+  @... Infected files: 1<br>
+  @... Time: 0.099 sec (0 m 0 s)</tt>
+  </dd><dd><tt>@ Reject::DATA::Virus_Infected: S:192.168.192.11:arkon.fehnet.de
+  H:mail.fehnet.de F:me T:erwin 'clamdscan'</tt>
+</dd></dl>
+
+<p><b>Note</b>: Even in case no virus is detected, the "SCAN
+SUMMARY" is provided.</p>
+
+<dl>
+  <dd><tt>@... tcpserver: pid 49989 from 192.168.192.11<br>
+  @... tcpserver: ok 49989 qmailer.fehnet.de:192.168.192.2:25 arkon.fehnet.de:192.168.192.11::1077<br>
+  @... /var/qmail/queue/mess/4/89543: Worm.Klez.H FOUND</tt>
+  </dd><dd><tt>@ Reject::DATA::Virus_Infected: S:192.168.192.11:arkon.fehnet.de
+  H:mail.fehnet.de F:me T:erwin 'clamdscan'<br>
+  @... tcpserver: end 49989 status 256</tt>
+</dd>
+</dl>
+
+<p><b><u>Attention:</u></b></p>
+
+<ul>
+	<li>The virus scanner has to be able to read the messages in
+		the Qmail queue:<br>
+		<tt># ls -ld /var/qmail/queue/mess/<br>
+		drwxr-x--- 25 qmailq qmail 4096 Jun 13 00:19 /var/qmail/queue/mess/</tt></li>
+	<li>If the virus scanner drops privileges during execution, it
+		might be necessary to make the executable sticky (ie. <b>clamscan</b>).</li>
+</ul>
+
+<p><b><u>Note</u></b>: As with this writing, clamav 0.8x is broken,
+since it writes all logs to STDOUT instead of STDERR; thus no
+scanning messages will apear in the <b>qmail-smtpd</b> log.</p>
+
+<h4>4.5.3 QHPSI performance improvements for Virus Scanning</h4>
+
+<p>The <i>badmimtypes</i> and <i>badloadertypes</i> mechanism
+provides a wire-speed filtering of incoming emails. However, typically
+all not-filtered emails are subject of the AV Scannner as defined
+via the QHPSI. Almost all worms and virii are transported as BASE64
+encoded attachments (except some trojans, encapsulated as HTML
+files). By means of the environment variable</p>
+
+<ul>
+	<li><tt>BASE64=""</tt></li>
+</ul>
+
+<p>one can advice QHPSI to scan only those emails which contain
+a BASE64 encoded attachment.</p>
+
+
+<h3>4.6 Qmail QUEUE_EXTRA</h3>
+
+<p>Bruce Guenter's Qmail QUEUE_EXTRA patch has almost the rank
+of a recommended patch, because it's used by many Qmail extensions
+like the Qmail-Scanner and <b>qmail-qfilter</b>.</p>
+
+<p>The actual use is controlled via the content of environment
+variable "<tt>QMAILQUEUE</tt>", which usually set in
+a <b>tcpserver</b>'s cdb ie. <tt>tcp.smtp</tt> or globally defined
+in the <b>qmail-smtpd</b>'s <tt>run</tt> script. A typical use is:</p>
+
+<dl>
+  <dd><tt>12.34.56:allow,RELAYCLIENT=""<br>
+  :allow,QMAILQUEUE="bin/qmail-qfilter"</tt>
+</dd>
+</dl>
+
+<p>which advices <b>qmail-smtpd</b> to use the executable <b>qmail-qfilter</b>
+as first stage queueing program instead of <b>qmail-queue</b>
+itself.</p>
+
+<p>In order to reject during the SMTP DATA phase, vanilla qmail
+requires that the <b>qmail-queue</b> replacement returns RC=31.
+<br>
+However, SPAMCONTROL enhances this mechanism with the following
+additional return codes:</p>
+
+<ul>
+	<li>RC = 32: Virus in message  </li>
+	<li>RC = 33: Spam message</li>
+</ul>
+
+<p>Those return codes can be extensibly used in a <b>qmail-queue</b>
+wrapper-script (see below).</p>
+
+<p><b><u>Note</u></b>: The QUEUE_EXTRA patch is not applied against
+<b>qmail-smtpd</b> but rather against the module <u>qmail.c</u>
+itself, since it is just an extension to the general queue call-mechanism.</p>
+
+<h4>4.6.1 qmail-queue.scan Replacement</h4>
+
+<p>The <b>qmail-queue.scan</b> script can be used by the QUEUE_EXTRA
+mechanism to allow a per (recipient) domain</p>
+
+<ul>
+	<li>virus scanning (ie by ClamAV)  </li>
+	<li>spam scanning (ie. SpamAssassin).</li>
+</ul>
+
+<p>For high volume/high performance scanning, the incoming message
+is copied to a tmp directory which typically should be raised
+on a ramdisk. All scanning actions can be realized now in memory
+which significantly reduces disk I/0.</p>
+
+<p>You can define individual SpamAssassin detection thresholds
+per domain using the additional control file:</p>
+
+<ul>
+	<li><u>control/spamdomains</u></li>
+</ul>
+
+<p>Here, you include the recipients's domains, followed by a colon,
+and the spam threshold for this domain:</p>
+
+<dl>
+  <dd><tt>example.com:10</tt>
+  </dd><dd><tt>yourdomain.com:8</tt>
+</dd>
+</dl>
+
+<p>SPAMCONTROL's <b>qmail-smtpd</b> is able to understand the
+(tagged) messages identified as infected or as spam and will issue
+a useful SMTP return code (see below).</p>
+
+<p>&nbsp;</p>
+<hr align="left">
+<p>&nbsp;</p>
+
+<h2><a name="Qmail-remote">5. qmail-remote Extensions</h2>
+
+<p>SPAMCONTROL modifies and extends the behavior of <b>qmail-remote</b>
+in the following ways:</p>
+
+<ul>
+	<li>Supporting a flexible STARTTLS/TLS communication with the
+		server.</li>
+	<li>The outgoing IP address can be chosen per (sending) domain.</li>
+	<li>Adding ESMTP support and in particular SMTP Authentication
+		of types PLAIN, LOGIN and CRAMD-MD5.</li>
+	<li>Connection attempts to all MX-listed MTAs in case of a rejection
+		and not just the primary.</li>
+	<li>QMTP suppport by means of <u>qmtproutes</u>.</li>
+	
+</ul>
+
+<h3>5.1 Chose outgoing IP Address per Domain</h3>
+
+<p>While <b>qmail-smtpd</b> can be bound (via <b>tcpserver</b>/<b>sslserver</b>)
+to any available IP address on the system, <b>qmail-remote</b>
+uses only the 'canonical' IP address of the system. However employing
+the file</p>
+
+<ul>
+  <li><u>control/domainips</u>
+</li></ul>
+
+<p>you can advise <b>qmail-remote</b> to bind to domain-specific
+IP addresses:</p>
+
+<dl>
+  <dd>example.com:192.168.0.1
+  </dd><dd>*.localhost.com:10.1.0.199
+</dd></dl>
+
+<p>Check the existing IP addresses <b>qmail-remote</b> can bind to by
+means of the <b>qmail</b> command <b>ipmeprint</b>.</p>
+
+<p>In addition, the domain name is now used as ESMTP EHLO greeting
+string.</p>
+
+<p>This is in particular useful hosting serveral domains and if
+you set up your email system in the DNS with different SPF records
+matching the FQDN of the IP. Further, if you use client certificates
+for authenticated TLS connections you are now able to match the
+(outgoing) IP with the Subject(Alt)Name in the X.509 client certificate.</p>
+
+<h3>5.2 STARTTLS and SMTPS support for qmail-remote</h3>
+
+<p><b>qmail-remote</b> uses the SSL routines provided by UCSPI-SSL
+and can be advised to set up a TLS session with the ESMTP
+peer in the following ways:</p>
+
+<ol>
+	<li>A <i>usual</i> STARTTLS session only makes use of the encryption
+  		available by means of the OpenSSL libraries.  </li>
+	<li>A <i>legimated</i> STARTTLS / SMTPS session allows you to
+		verify the server's X.509 certificate against a known CA.  </li>
+	<li>A <i>particular</i> STARTTLS / SMTPS session allows you to
+		verify the server's X.509 certificate and to validate the provided 
+		  'Subject' in the SAN/DN against the <i>hostname</i> retrieved from the DNS.
+		  This can be used for <i>server authentication</i>.  </li>
+	<li>A <i>client-authenticated </i>STARTTLS / SMTPS session requires
+		to have a valid client X.509 certificate to be requested by the
+		ESMTP server application and presented on a peer-2-peer base.
+		In consequence, the CA certificate is (mutually) used (1) for
+		<i>signing</i> the client certificate and (2) to <i>verify</i>
+		the client certificate at the server side. </li>
+</ol>
+
+<p>You can control the TLS connectivity behavior of <b>qmail-remote</b>
+by means of</p>
+
+<dir>
+  <li><u>control/tlsdestinations</u>
+</li>
+</dir>
+
+STARTTLS support for <b>qmail-remote</b> becomes effective, simply populating
+this file with 
+
+</p><dl>
+  <dd><tt>*:</tt></dd>
+</dl>
+
+
+meaning '<i>use TLS encryption for any peer offering STARTTLS support, or
+in case of connecting to port 465 use SMTPS</i>'. 
+
+Alternatively, 'Anonymous Diffie-Hellman' is requested and no X.509 
+certificate is evaluated by means of: 
+
+</p><dl>
+  <dd><tt>-*:|aNULL:!RSA</tt></dd>
+</dl>
+
+
+<p>This control file is separated into a 'destination domain' the left side
+of the colon and a (structured) informational part right from
+the colon employing '|' the bar character for separation and perhaps
+a colon for the port in the last position:
+
+</p><dl>
+  <dd><tt>destination:cafile|cipher|verifydepth:port|senddomain</tt></dd>
+</dl>
+
+<u>Destination</u>
+<ul>
+	<li>may be an '*' asterisk symbol meaning 'any host', or</li>
+	<li>may start with a dash '-' which disables the verification of a X.509
+		certificate (all: '-*'), or</li>
+	<li>may start with a equal sign '=' telling <b>qmail-remote</b>
+		to additionally verify the cert's <i>Subject Alternative Name</i>
+		against the FQDN.</li>
+</ul>		
+
+<p><u>cafile</u> is the full-qualified path name to the 
+CA certificate file in PEM format. This certificate file can be 
+build of several X.509 certs. If however, <u>cafile</u>
+ends with a slash  "/", a CADIR is assumed hosting
+the certificates in a "hashed" format.</p><p>
+
+</p><p>The expression for the accepted <i>cipher</i> can be constructed
+individually. Check the OpenSSL information for the syntax and the
+accepted values.</p>
+
+<p>The <u>verifydepth</u> parameter defaults <tt>1</tt> and should
+be adjusted to the nesting of the certificates in the chain.</p>
+
+<p>In case <u>port</u> equals <tt>465</tt> the SMTPS port, STARTTLS
+is not tried but rather a standard TLS connection is required.</p>
+
+<p>Finally, an entry in <u>control/tlsdestinations</u> can be bound against
+the the <u>senddomain</u> in case several outgoing domains are used.
+Thus, an entry is only valid, if it matches the <u>senddomain</u>.</p>
+
+<p>The file <u>control/tlsdestinations</u> is evaluated in the following order
+(for the same domain, the more specific information is taken) with
+additional customization samples included:
+
+<ol>
+   <li><tt>!nosslhost.example.com:</tt></li>
+   <li><tt>=myfriend.com:/etc/ssl/cacert||2</tt></li>
+   <li><tt>mx1.example.com:/etc/ssl/cafile|:465</tt></li>
+   <li><tt>.example.com:/etc/ssl/cadir/|!SSLv2:!aNNULL</tt></li>
+   <li><tt>-.adh.org:|aNULL:!RSA||myexample.org</tt></li>      
+   <li><tt>*:||TLSv1+HIGH:!SSLv2:RC4+MEDIUM:!aNULL:!eNULL:!3DES:@STRENGTH</tt></li>
+</ol>
+
+<p>Thus, you can specify <i>particular</i> hosts/domain to set up a
+STARTTLS connection to, - or - <i>exclude</i> particular hosts by
+means of an prepended exclamation mark (!) following the hostname.</p>
+
+<h4>5.2.1 Legitimated STARTTLS / SMTPS sessions</h4>
+
+<p>Since the ESMTP server always presents a X.509 certificate,
+this can used for additional interrogation:</p>
+
+<dir>
+	<li>A <i>verification</i> of the ESMTP server's X.509 certificate
+		  can be accomplished against a (set of) CA' <u>certificates</u>
+		  available in a PEM file or in a particular directory (with 'hashed'
+		  PEM file names).  </li>
+	<li>The request for <i>particular</i> TLS Ciphers.  </li>
+	<li>The acceptable <tt>VERIFYDEPTH</tt> for the server's certificate (Default: 1).  </li>
+	<li>A <i>particular</i> <tt>port</tt> to connect to (ie. 465 for SMTPS)
+		following a (last) colon.</li>
+</dir>
+
+
+<h4>5.2.2 Particular STARTTLS / SMTPS sessions</h4>
+
+<p>Here, the server's X.509 certificate can be checked:</p>
+
+<dir>
+	<li>A hostname prepended with a '=' (equal) sign will
+		<i>validate</i> the presented 'SubjectName' / 'SublectAlternativeName (SAN)'
+		against the received FQDN of the ESMTP server.  </li>
+	<li>A <i>verification</i> of the ESMTP server's X.509 <u>certificate</u>
+		can be accomplished against a (set of) CA' <u>certificates</u>
+  		available in a PEM file or in a particular directory (with 'hashed'
+		  PEM file names).  </li>
+	<li>The request for <i>particular</i> TLS Ciphers.  </li>
+	<li>The acceptable <tt>VERIFYDEPTH</tt> for the server's certificate (Default: 1).  </li>
+	<li>A <i>particular</i> port to connect to (ie. 465 for SMTPS)
+		following a (last) colon.</li>
+</dir>
+
+<h4>5.2.3 Authenticated STARTTLS / SMTPS qmail-remote sessions</h4>
+
+<p>On the ESMTP's server request, <b>qmail-remote</b> will provide
+(if available) a X.509 client <u>certificate</u>. The server may
+evaluate this certificate and set credentials (ie. relaying),
+accordingly.</p>
+
+<ul>
+	<li>The ESMTP server needs to have access to the CA <u>certificate</u>
+		which was used to sign the client X.509 certificate.  </li>
+	<li><b>qmail-remote</b> needs to have the signed X.509 client
+		<u>certificate</u> and (of course) the private <u>keyfile</u>.
+  		The <u>keyfile</u> may be password protected. </li>
+</ul>
+
+<p>This information can be provided per sending domain by means
+of the control file</p>
+
+<dir>
+	<li><u>control/domaincerts</u></li>
+</dir>
+
+<p>which is structured comparable to <u>control/tlsdestinations</u>.
+Thus the part left from the colon tells the sending domain; in
+case this equals "*" all outgoing connections use the
+same <u>certificate</u>/<u>keyfile</u>. The right parts provides
+the location and the <u>certfile</u> (in PEM format), the <u>keyfile</u>
+(if any) and perhaps the password to decrypt the keyfile; all
+separated by a '|':</p>
+
+<dl>
+  <dd><tt>domainpart:certfile|keyfile|password</tt></dd>
+</dl>
+
+<h3>5.3 qmail-remote Authentication</h3>
+
+<p>The <b>qmail-remote</b> authentication
+from Bjoern Kalkbrenner has been included in a modular and RFC-complient
+version. <b>qmail-remote</b> sessions can be SMTP authenticated
+with the types PLAIN, LOGIN and CRAM-MD5 on a now be realized
+
+<ol>
+    <li><i> by sender</i> (Reverse-Path) or </li>
+    <li>alternatively, by <i>destination</i>.</li>
+</ol>
+
+<p><u>Mechanism 1:</u></p>
+
+<p>Authentication for outgoing SMTP sessions is faciliated, if the control file</p>
+
+<ul>
+  <li><u>control/authsenders</u></li>
+</ul>
+
+<p>is populated accordingly. Sample:</p>
+
+<dl>
+  <dd><tt>mail@example.com|test|testpass<br>
+  info@example.com:smtp.example.com:26|other|otherpw<br>
+  :mailrelay.example.com|e=mc2|testpass</tt></dd>
+</dl>
+
+<p>In the first case, an email with SMTP envelope sender  <i>Mail From:</i> 'mail@example.com'
+tries to authenticate <i>always</i> with username 'test' and password 'testpass'.
+In the second case emails from the sender 'info@example.com' are tries
+to relay through 'smtp.example.com' on port 26 with authentication username 
+'other' and password 'otherpw'. The third sample shows, that <i>any</i>
+outgoing email irrespectively of the sender is relayed thru 'mailrelay.example.com'
+with authentication username 'e=mc2' and password 'testpass'.</p>
+
+<p><u>Mechanism 2:</u></p>
+
+Instead of binding the authentication procedure to a specific <i>user</i>
+rather you can define it per <i>destination</i>, defining the 
+control file </p>
+
+<ul>
+  <li><u>control/smtproutes</u></li>
+</ul>
+
+<p>accordingly:</p>
+
+<dl>
+  <dd><tt>.example.com:smtp.example.com:587|other|otherpw<br>
+  :mailrelay.example.com|e=mc2|testpass</tt></dd>
+</dl>
+
+<p>This syntax follows the <u>smtprules</u> interpretation. The first lines
+shows how emails <i>for</i> 'example.com' is relayed through 'smtp.example.com'
+on port '587' (Submission) using the authentication usernaem 'other' and
+password 'otherpw'. In the second case <i>any</i> email is relayed by
+means of 'mailrelay.example.com' with authenticated username 'e=mc2' and 
+password 'testpass'.</p>
+
+
+<h3>5.4 qmail-remote MX connectivity</h3>
+
+<p>Typically sites/domains on the Internet are reachable over
+serveral MTA listed and deployed in the DNS MX records (o.k. <i>qmail.org
+</i>is an exception). By theory, the MX with the smallest weight
+is the primary MX for that domain; though often sites have redundant
+MTA with equal weights:</p>
+
+<dl>
+  <dd><i>10 mailc.microsoft.com<br>
+  10 maila.microsoft.com<br>
+  10 mailb.microsoft.com</i>
+</dd></dl>
+
+<p>In order to deliver emails <b>qmail-remote</b> follows two
+strategies:</p>
+
+<ul>
+	<li><b>qmail-remote</b> will deliver only one email per connection.  </li>
+	<li><b>qmail-remote</b> always connects to the MTA with the lowest
+		weight coming first in the list.</li>
+</ul>
+
+<p>In case this MTA is exhausted and rejects the connection during
+the EHELO/HELO greeting, <b>qmail-remote</b> exists and retries
+the very same MTA again with it's quadratic queue schedule mechanism.</p>
+
+<p>Running EZMLM with many messages to the vary same domain but
+different Recipients, email delivery may become throttled, which
+particularly happens for <i>t-online.de</i> sites which don't
+allow too many connections from the same client MTA (a policy
+which is actually not covered by any SMTP RFC).</p>
+
+<p>Back 10 years ago, when Dan was designing qmail he already
+was aware of that problem:</p>
+
+<dl>
+  <dd>"If I successfully connect to an MX host but it temporarily
+  refuses to accept the message, I give up and put the message
+  back into the queue.<br>
+  But several documents seem to suggest that I should try further
+  MX records. What are they thinking? My approach deals properly
+  with downed hosts, hosts that are unreachable through a firewall,
+  and load balancing; what else do people use multiple MX records
+  for? " (THOUGHTS)
+</dd></dl>
+
+<p>and included already the code base into <b>qmail-remote</b>
+which I simply activated. Thus, in case <b>qmail-remote</b> receives
+a rejection during the EHLO/HELO greeting it will simply try the
+next MTA for the DNS MX list.</p>
+
+<p>After the MX lookup <b>qmail-remote</b> needs to fetch the
+CNAME from the DNS. Here, Dan decided (probably due to a bug in
+BIND 4.x) to employ a ANY query. This has some consquences:</p>
+
+<ul>
+	<li>The ANY query returns ALL Resource Records for that CNAME.  </li>
+	<li>Misconfigured DNS content server will send oversized DNS
+		records including additional AAAA and TXT information. </li>
+	<li>The ANY query is not cached, but rather the resolver needs
+	to contact the authoritive DNS content server.</li>
+</ul>
+
+<p>In essence, the ANY query is a heavy burdon on the DNS traffic
+and MAY result in the famous <b>qmail-remote</b> error message:
+"CNAME temporary lookup failure". It has been suggested,
+to replace the ANY query with a standard CNAME query, but I hesitate:</p>
+
+<ul>
+	<li>Anybody running a SMTP MTA on the Internet shall be able
+		to set up DNS resources reliably.  </li>
+	<li>In case the ANY query fails, certainly something is wrong
+		with the target's DNS configuration.  </li>
+	<li>In times, where we demand strict SMTP conformance (and in
+		particluar a PTR record for the MTAs) why not ask for correct
+  		DNS settings ?</li>
+</ul>
+
+<p>Therefore, I added a verbose CNAME message into <b>qmail-remote</b>
+logs, thus you are able to figure out the problem using tools
+like <b>dig</b>. If you use <b>dnscache</b>, i suggest to raise
+the <i>udpbuf</i> (to [4096]) in <u>dns_transmit.c</u>.</p>
+
+<h3>5.5 Fast delivery for qmail-remote</h3>
+
+<p><b>qmail-remote</b> incorporates two performance critical steps
+for the delivery:</p>
+
+<ul>
+	<li>"Currently <b>qmail-remote</b> sends data in 1024-byte
+		Buffers. Perhaps it should try to take account of the MTU. "
+	  (THOUGHTS)  </li>
+	<li><b>qmail-remote</b> processes the input data byte after byte
+	which is costly in terms of CPU cylces.</li>
+</ul>
+
+<p>Bruce Guenter recognized the last fact and patched <b>qmail-remote</b>
+accordingly ("fastremote"), thus <b>qmail-remotes</b>
+processes the input data in chunks of 4 Kbyte. This patch has
+been included into SPAMCONTROL.</p>
+
+<h3>5.6 qmail-remote as QMTP client</h3>
+
+<p><b>qmail-remote</b> includes now a QMTP client. This extends
+the 'mini-qmail' scheme and allows to setup the internal email
+system on QMTP rather then SMTP.</p>
+
+<p>QMTP delivery is triggered by means of the file <u>control/qmtproutes</u>
+which follows the same symtay as <u>control/smtproutes</u> and
+obeys the syntax</p>
+
+<blockquote>
+  <p><tt>domain:relay:port</tt></p>
+</blockquote>
+
+<h3>5.7 qmail-remote routing order</h3>
+
+<p><b>qmail-remote</b> applies the definded routing advices in
+the following order:</p>
+
+<ol>
+	<li><b>authsender</b> routes have precedence.  </li>
+	<li><b>qmtproutes</b> and <b>smtproutes</b> are evaluated side-by-side.<br>
+	<ol>
+		<li>A more specific (domain) entry has precedence over a less-specific one.</li>
+		<li>Equal-level <b>qmtproutes</b> are used in favour of <b>smptroutes</b>.</li>
+	</ol>
+	</li>
+</ol>
+
+<p>&nbsp;</p>
+<hr align="left">
+<p>&nbsp;</p>
+
+<h2><a name="Qmail-pop3d">6. qmail-pop3d/qmail-popup</h2>
+
+<h3>6.1 STLS support</h3>
+
+<p>The STLS (Start TLS support) for <b>qmail-popup </b>follows
+the same scheme as <b>qmail-smtpd</b>.</p>
+
+<p>Requirements:</p>
+
+<ul>
+	<li>Put the SSL variables into the environment (see 1.3.3).  </li>
+	<li>Define<tt> UCSPITLS=""</tt> in <b>qmail-pop3d</b>'s <tt>run</tt> script.</li>
+</ul>
+
+<p>Actually, you can use the same "<u>env</u>" file as for
+<b>qmail-smtpd</b>. In this case <b>qmail-popup</b> announces in the capability
+list "STLS" and the following POP3 dialogue is encrypted
+as is the transmission of the received emails as well.</p>
+
+<h3>6.2 qmail-pop3d run Script</h3>
+
+<p>In order to use SSL encryption for a POP3 connection, the following
+<tt>run</tt> script for <b>qmail-pop3d</b> is appropriate:</p>
+
+<ul>
+  <dl>
+    <dd><tt>#!/bin/sh<br>
+    HOSTNAME=`hostname`<br>
+    export UCSPITLS=""<br>
+    . /var/qmail/ssl/env<br>
+    exec /usr/local/bin/sslserver -sevn -R -c100 0 pop3 \<br>
+    /var/qmail/bin/qmail-popup $HOSTNAME /usr/local/bin/checkvpw
+    \<br>
+    /var/qmail/bin/qmail-pop3d Maildir 2&gt;&amp;1</tt>
+  </dd></dl>
+</ul>
+
+<p><u>Note</u>: In this <tt>run</tt> script I use Bruce Guenter's
+<b>checkvpw</b> as PAM (for <b><i>vmailmgr</i></b>), which requires
+the additional presence of the "<i>Maildir</i>" argument
+after the call of <b>qmail-pop3d</b>. Unfortunately, <b>checkvpw</b> does
+not support <tt>APOP</tt> but rather <tt>USER</tt> authentication only.</p>
+
+<p>The profile <u>/var/qmail/ssl/env</u> is the same as for <b>qmail-smtpd</b>.
+Defining the environment variable <tt>UCSPITLS</tt> directly in
+the <tt>run</tt> script instead of the profiles, allows a flexible
+use of the STARTTLS/STLS option for <b>qmail-pop3d</b> and <b>qmail-smtpd</b>
+without modifying the common profile.</p>
+
+<h3>6.3 qmail-popup logging</h3>
+
+<p>The access to the POP3 accounts can be monitored now in the logfiles.</p>
+
+The information provided is equivalent to those available for <b>qmail-smtpd</b>.
+You will realize the following line per connection:
+
+<dl><dd><tt>
+@400000004fbf28d603b6f744 qmail-popup: pid 24852 Accept::AUTH::User P:POP3S S:87.168.17.32:p57a81120.dip0.t-ipconnect.de ?= 'username'
+</tt></dd></dl>
+
+<p>Authentication ttempts are labled '<tt>Accept</tt>' or '<tt>Reject</tt>'.
+The type of authentication is indicated as '<tt>User</tt>' or '<tt>Apop</tt>' and 
+additionally the provided <tt>authentication-id</tt>
+is displayed together with the protocol type.
+
+<p>&nbsp;</p>
+<hr align="left">
+<p>&nbsp;</p>
+
+<h2><a name="Qmail-send">7. qmail-send, qmail-queue, and the qmail's sendmail</h2>
+
+<h3>7.1 Bounces</h3>
+
+<p>Bounces have generally a Null-Sender address (<tt>Mail From:
+&lt;&gt;</tt>) and are out-of-band error-messages to indicate
+a failure in the delivery process. In fact, RFC 2821/821 <i>requires</i>
+that all notification E-Mails have to have a Null-Sender address!</p>
+
+<p>For every undeliverable message, <b<qmail-send</b> generates a bounce
+to the Sender. While this is legitimate and necessary for normal
+operation, in case of SPAM attacks the bounces are meaningless:</p>
+
+<ul>
+	<li>The SPAMMER uses a lexical approach to generate random addresses,  
+		thus most of the E-Mails are undeliverable per se.  </li>
+	<li>The SPAMMER's Sender address is forged or is only limited
+		available (during the SPAM attack), thus the bounce fail; and
+		eventually generate a double-bounce. One undeliverable SPAM message
+		may result in two additional bounces.</li>
+</ul>
+
+<p>Unless you use a 'whitelisting' of Recipient E-Mail addresses,
+there is not much to do about. However, SPAMCONTORL helps you
+in theses cases:</p>
+
+<h4>7.1.1 Limiting the Size of Bounces</h4>
+
+<p>By definition, a bounce is a SMTP notification for a failure
+situation. It is common practice, to include the original message
+in the bounce. Qmail uses a specific format, introduced by Dan
+Bernstein and called "QSBMF" (qmail-send Bounce Message
+Format); other MTA encapsulate the original message as MIME attachment
+in <tt>rfc822/message</tt> format.</p>
+
+<p>Anyway, for a legitimate bounce reaching the Sender the original
+message is usually of no interest, except for identification purposes.
+In order to save bandwidth, you can limit the size of bounces
+using the control file</p>
+
+<ul>
+	<li><u>control/bouncemaxbytes</u></li>
+</ul>
+
+<p>Unlike the original patch (from Frank DENIS aka Jedi/Sector
+One &lt;j@4u.net&gt;), the default value is '0' byte, meaning
+no limits. A useful limit would by 2000 (byte), which covers the
+header and some body part information. The average size of a SPAM
+E-Mail is 5 Kbyte.</p>
+
+<p>The original message included in the bounce will be limited
+to the defined <tt>bouncemaxbytes</tt> and truncated, which is displayed
+in the bounce with "--- Rest of message truncated."
+at the end of the bounce.</p>
+
+<h4>7.1.2 Defining bounceroutes</h4>
+
+<p><b>qmail-remote</b> is now able to recognize bounces by means
+of the missing SMTP Mail From: address "&lt;&gt;".</p>
+
+<p>To support efficient bounce handling, all bounces can be redirected
+to a particular '<i>bounce host</i>'. Simply include</p>
+
+<blockquote>
+  <p><tt>!@:bouncehost.af.mil:27</tt></p>
+</blockquote>
+
+<p>into <u>control/smtproutes</u> or <u>control/qmtproutes</u>
+and you are done.</p>
+
+<h4>7.1.3 Dumping Double Bounces</h4>
+
+<p>Double bounces are generated, if the bounce can not be delivered
+to the Sender.</p>
+
+<p>Double bounces are usually delivered to the 'Postmaster' account.
+It is convenient that this account is local and eventual double
+bounces are stored in a mbox/Maildir for later inspection. However,
+Qmail allows you to forward double bounces to some other account
+defined in</p>
+
+<ul>
+  <li><u>control/doublebounceto</u></li>
+</ul>
+
+<p>However, due to the forged Sender address in SPAM E-Mails,
+practically all bounces become double bounces eventually. In this
+case any storage and inspection is fruitless. Taken from Russell
+Nelson and Charles Cazabon, you can optionally dump all double
+bounces immediately. This is facilitated if <u>doublebounceto</u>
+contains a '@' in the first line.</p>
+
+<p>Those dumped double bounces show up in the <b>qmail-send</b> log as:
+"double bounce: discarding".</p>
+
+
+
+<h3>7.2 qmail-send Gadgets</h3>
+
+<p>As a further gadget, the <b>qmail-send </b>control files</p>
+
+<ul>
+	<li><u>control/concurrencylocal</u></li>
+	<li><u>control/concurrencyremote</u></li>
+</ul>
+
+<p>are re-read by means of a HUP signal (eg. <tt>svc -h /service/qmail-send</tt>).</p>
+
+<p><u>Note</u>: The 'silent' spawn limit has been increased to 500. Thus, in maximum
+<b>qmail-send</b> can run 500 <b>qmail-local</b> (and more reasonable) 500 <b>qmail-remote</b>
+processes.</p>
+
+<h3>7.3 qmail-queue: BigToDo enhancement</h3>
+
+<p>The queue directories <tt>./intd</tt> and <tt>./todo</tt> are
+splitted (as per <tt>conf-split</tt>) into subdirectories to
+allow a more efficient treatment of many incoming messages.</p>
+
+<p><u>Caution:</u> Make sure, that the directories<tt> ./queue/todo</tt>
+and <tt>./queue/intd</tt> are empty before applying the patch;
+otherwise <b>qmail-send</b> will not be able to process those messages
+anymore!</p>
+
+<p><u>Note</u>: The shell script <b>qmail-qstat</b> and in addition some
+<b>qmail-mrtg</b> analyses are affected by this change.</p>
+
+
+<h3>7.4 sendmail Fixes</h3>
+
+<p>The following fixes for Qmail's <b>sendmail</b> wrapper have been
+included for compatibility reasons:</p>
+
+<ul>
+	<li>The 'sendmail -f' patch by David Philips, thus sendmail sets
+		the default for the username.  </li>
+	<li>The 'sendmail -N dsn' patch by Matthias Andree, thus sendmail
+		ignores the -N option.</li>
+</ul>
+
+<p>&nbsp;</p>
+<hr align="left">
+<p>&nbsp;</p>
+
+<h2><a name="Return-codes">8. SMTP Protocol Return Codes</h2>
+
+<p>SMTP allows to reject Sessions based on some technical and/or
+political criteria, which are not well expressed in the RFCs (2821,
+2554, 2505, 1122).</p>
+
+<p>The SMTP protocol mechanism between the client and the server
+are defined as <i>Commands</i> and <i>Replies</i>. SMTP uses a
+three-letter Reply Code. The first digit tells whether a command
+was accepted and completed (2), transaction begin (3), or whether
+there was as transient (4) or permanent failure (5). In addition,
+an explanatory description may be given.</p>
+
+<p>RFC 1893 introduces a concept of "Enhanced Mail System
+Status Codes" (EMSSC) which should provide easily parseable
+SMTP server conditions and transaction statuses, usually at the
+end of the SMTP reply and included in parenthesis, eg. (#5.5.1).</p>
+
+<p>The SMTP Reply Codes and the EMSSC are detailed in the corresponding
+RFCs, but don't fit well to each other, thus either providing
+redundant information or almost no additional information at all.
+In short, the EMSSC is nowadays almost meaningless.</p>
+
+<p>Here's a breakdown of SPAMCONTROL's SMTP Reply Codes, informational
+texts, and the used EMSSC.<b></b></p>
+
+<p><b></b><table border="1" cellpadding="0" cellspacing="2" height="740" width="588">
+  <tbody> 
+  <tr>
+    <td height="23" width="9%">
+    <h4>&nbsp;Reply</h4>
+</td>
+    <td height="23" width="77%">
+    <h4>&nbsp;Informational text</h4>
+</td>
+    <td height="23" width="14%">
+    <h4>&nbsp;EMSSC</h4>
+</td>
+  </tr>
+  <tr>
+    <td height="25" width="9%">
+    &nbsp;421</td> 
+    <td height="25" width="77%">
+    &nbsp;unable to check recipients</td> 
+    <td height="25" width="14%">
+    &nbsp;(#4.3.0)</td> 
+  </tr>
+  <tr>
+    <td height="24" width="9%">
+    &nbsp;450</td> 
+    <td height="24" width="77%">
+    &nbsp;sorry, mailbox currently unavailable</td> 
+    <td height="24" width="14%">
+    &nbsp;(#4.2.1)</td> 
+  </tr>
+  <tr>
+    <td height="24" width="9%">
+    &nbsp;451&nbsp;</td> 
+    <td height="24" width="77%">
+    &nbsp;DNS temporary failure</td> 
+    <td height="24" width="14%">
+    &nbsp;(#4.3.0)&nbsp;</td> 
+  </tr>
+  <tr>
+    <td height="24" width="9%">
+    &nbsp;452</td> 
+    <td height="24" width="77%">
+     Too many recipients</td> 
+    <td height="24" width="14%">
+    &nbsp;(#4.5.3)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;454</td> 
+    <td height="23" width="77%">
+    &nbsp;TLS not available due to temporary reason&nbsp;</td> 
+    <td height="23" width="14%">
+    &nbsp;(#5.7.3)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;</td> 
+    <td height="23" width="77%">
+    &nbsp;</td> 
+    <td height="23" width="14%">
+    &nbsp;</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;501</td> 
+    <td height="23" width="77%">
+    &nbsp;auth exchange canceled</td> 
+    <td height="23" width="14%">
+    &nbsp;(#5.0.0)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;501</td> 
+    <td height="23" width="77%">
+    &nbsp;malformed auth input</td> 
+    <td height="23" width="14%">
+    &nbsp;(#5.5.4)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;503</td> 
+    <td height="23" width="77%">
+    &nbsp;you're already authenticated</td> 
+    <td height="23" width="14%">
+    &nbsp;(#5.5.0)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;503</td> 
+    <td height="23" width="77%">
+    &nbsp;no auth during mail transaction</td> 
+    <td height="23" width="14%">
+    &nbsp;(#5.5.0)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;503</td> 
+    <td height="23" width="77%">
+    &nbsp;sorry, SMTP Authentication not available</td> 
+    <td height="23" width="14%">
+    &nbsp;(#5.7.3)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;504</td> 
+    <td height="23" width="77%">
+    &nbsp;auth type unimplemented</td> 
+    <td height="23" width="14%">
+    &nbsp;(#5.5.1)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;535</td> 
+    <td height="23" width="77%">
+    &nbsp;authorization failed</td> 
+    <td height="23" width="14%">
+    &nbsp;(#5.7.1)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;535&nbsp;</td> 
+    <td height="23" width="77%">
+    &nbsp;authentication required</td> 
+    <td height="23" width="14%">
+    &nbsp;(#5.7.1)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;535&nbsp;</td> 
+    <td height="23" width="77%">
+    &nbsp;STARTTLS required&nbsp;</td> 
+    <td height="23" width="14%">
+    &nbsp;(#5.7.1)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;</td> 
+    <td height="23" width="77%">
+    &nbsp;</td> 
+    <td height="23" width="14%">
+    &nbsp;</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;550</td> 
+    <td height="23" width="77%">
+    &nbsp;sorry, invalid HELO/EHLO greeting</td> 
+    <td height="23" width="14%">
+    &nbsp;(#5.7.1)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;550</td> 
+    <td height="23" width="77%">
+    &nbsp;sorry, your envelope recipient is in my badrcptto list</td> 
+    <td height="23" width="14%">
+    &nbsp;(#5.7.1)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;550</td> 
+    <td height="23" width="77%">
+    &nbsp;sorry, invalid sender address specified</td> 
+    <td height="23" width="14%">
+    &nbsp;(#5.7.1)</td> 
+  </tr>
+  <tr>
+    <td height="24" width="9%">
+    &nbsp;550</td> 
+    <td height="24" width="77%">
+    &nbsp;sorry, bounce messages should have a single envelope recipient</td> 
+    <td height="24" width="14%">
+    &nbsp;(#5.7.1)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;</td> 
+    <td height="23" width="77%">
+    &nbsp;</td> 
+    <td height="23" width="14%">
+    &nbsp;</td> 
+  </tr>
+  <tr>
+    <td height="27" width="9%">
+    &nbsp;552</td> 
+    <td height="27" width="77%">
+    &nbsp;sorry, that message size exceeds my databytes limit</td> 
+    <td height="27" width="14%">
+    &nbsp;(#5.3.4)</td> 
+  </tr>
+  <tr>
+    <td height="24" width="9%">
+    &nbsp;553</td> 
+    <td height="24" width="77%">
+    &nbsp;sorry, your envelope sender is in my badmailfrom list</td> 
+    <td height="24" width="14%">
+    &nbsp;(#5.7.1)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;550</td> 
+    <td height="23" width="77%">
+    &nbsp;sorry, that domain isn't in my list of allowed rcpthosts</td> 
+    <td height="23" width="14%">
+    &nbsp;(#5.7.1)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;553</td> 
+    <td height="23" width="77%">
+    &nbsp;sorry, your envelope sender domain must exist</td> 
+    <td height="23" width="14%">
+    &nbsp;(#5.7.1)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;</td> 
+    <td height="23" width="77%">
+    &nbsp;</td> 
+    <td height="23" width="14%">
+    &nbsp;</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;554</td> 
+    <td height="23" width="77%">
+    &nbsp;too many hops, this message is looping</td> 
+    <td height="23" width="14%">
+    &nbsp;(#5.4.6)</td> 
+  </tr>
+  <tr>
+    <td height="23" width="9%">
+    &nbsp;554</td> 
+    <td height="23" width="77%">
+    &nbsp;sorry, invalid message content (optional text)</td> 
+    <td height="23" width="14%">
+    &nbsp;(#5.3.2)</td> 
+  </tr></tbody> 
+</table></p>
+
+<p>&nbsp;</p>
+<hr align="left">
+<p>&nbsp;</p>
+
+<h2><a name="Logging">9. qmail-smtpd Logging</h2>
+
+<p>Normally, <b>qmail-smtpd</b> doesn't log anything. With SPAMCONTROL
+<b>qmail-smtpd</b> logs accepted and some (important) rejected SMTP session
+attempts. The logging is done</p>
+
+<ul>
+	<li>after the STARTTLS or AUTH phase  </li>
+	<li>at the end of the "Rcpt To:" and  </li>
+	<li>eventually at the end of the "Data" phase.
+	<dir>
+		<li>Format: "<tt>qmail-smtpd pid: PID</tt> <tt>Action::Type::Condition:
+			Information"</tt>  </li>
+	</dir>
+	</li>
+</ul>
+
+<p><u>Note</u>: Including the PID in every line makes it possible to
+follow the current. <i>transaction</i> on port SMTP/ESMTP: From
+initialisation over <b>tcpserver/sslserver</b>, thru <b>rblsmtpd</b> and eventually
+to the (missing, rejected, accepted) (E)SMTP session in <b>qmail-smtpd</b>.</p>
+
+<h3>9.1 Extensible logging scheme</h3>
+
+<p><b></b><table border="1" cellpadding="0" cellspacing="2" height="1157" width="716">
+  <tbody> 
+  <tr>
+    <td height="33" width="12%">
+    <h4>&nbsp;Action</h4>
+</td>
+    <td height="33" width="11%">
+    <h4>&nbsp;Type</h4>
+</td>
+    <td height="33" width="23%">
+    <h4>&nbsp;Condition</h4>
+</td>
+    <td height="33" width="54%">
+    <h4>&nbsp;Explanation</h4>
+</td>
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject</td> 
+    <td height="33" width="11%">
+    &nbsp;SMTP</td> 
+    <td height="33" width="23%">
+    &nbsp;Toomany_Hops</td> 
+    <td height="33" width="54%">
+    &nbsp;Message Hop count exceeded</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject</td> 
+    <td height="33" width="11%">
+    &nbsp;SMTP</td> 
+    <td height="33" width="23%">
+    &nbsp;Syntax_Error</td> 
+    <td height="33" width="54%">
+    &nbsp;Malformed SMTP address (e.g. missing brackets)</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;</td> 
+    <td height="33" width="11%">
+    &nbsp;</td> 
+    <td height="33" width="23%">
+    &nbsp;</td> 
+    <td height="33" width="54%">
+    &nbsp;</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject</td> 
+    <td height="33" width="11%">
+    &nbsp;DATA</td> 
+    <td height="33" width="23%">
+    &nbsp;Invalid_Size</td> 
+    <td height="33" width="54%">
+    &nbsp;DATA exceeds sizelimit</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject</td> 
+    <td height="33" width="11%">
+    &nbsp;DATA</td> 
+    <td height="33" width="23%">
+    &nbsp;Bad_MIME</td> 
+    <td height="33" width="54%">
+    &nbsp;DATA includes BASE 64 MIME type listed in badmimetypes</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject</td> 
+    <td height="33" width="11%">
+    &nbsp;DATA</td> 
+    <td height="33" width="23%">
+    &nbsp;Bad_Loader</td> 
+    <td height="33" width="54%">
+    &nbsp;DATA includes BASE64 loader type listed in badmimetypes</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject</td> 
+    <td height="33" width="11%">
+    &nbsp;DATA</td> 
+    <td height="33" width="23%">
+    &nbsp;Virus_Infected</td> 
+    <td height="33" width="54%">
+    &nbsp;DATA includes virus infected message ('&lt;scanner&gt;'
+    | 'AV scanner')</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject</td> 
+    <td height="33" width="11%">
+    &nbsp;DATA</td> 
+    <td height="33" width="23%">
+    &nbsp;Spam_Message</td> 
+    <td height="33" width="54%">
+    DATA includes an identfied Spam message&nbsp;</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;</td> 
+    <td height="33" width="11%">
+    &nbsp;</td> 
+    <td height="33" width="23%">
+    &nbsp;</td> 
+    <td height="33" width="54%">
+    &nbsp;</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject</td> 
+    <td height="33" width="11%">
+    &nbsp;SNDR</td> 
+    <td height="33" width="23%">
+    &nbsp;Bad_Helo</td> 
+    <td height="33" width="54%">
+    &nbsp;SNDR's HELO is in the badhelo</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject</td> 
+    <td height="33" width="11%">
+    &nbsp;SNDR</td> 
+    <td height="33" width="23%">
+    &nbsp;DNS_HELO</td> 
+    <td height="33" width="54%">
+    &nbsp;SNDR's HELO has no DNS A/MX RR</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject</td> 
+    <td height="33" width="11%">
+    &nbsp;SNDR</td> 
+    <td height="33" width="23%">
+    &nbsp;Invalid_Relay</td> 
+    <td height="33" width="54%">
+    &nbsp;SNDR's tries relaying; but not allowd</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject&nbsp;</td> 
+    <td height="33" width="11%">
+    &nbsp;SNDR</td> 
+    <td height="33" width="23%">
+    &nbsp;Missing_TLS</td> 
+    <td height="33" width="54%">
+    &nbsp;STARTTLS was required but not granted by client</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Accept</td> 
+    <td height="33" width="11%">
+    &nbsp;SNDR</td> 
+    <td height="33" width="23%">
+    &nbsp;Relay_Client</td> 
+    <td height="33" width="54%">
+    &nbsp;SNDR was identfied as relay client</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Info</td> 
+    <td height="33" width="11%">
+    &nbsp;SNDR</td> 
+    <td height="33" width="23%">
+    &nbsp;TLS</td> 
+    <td height="33" width="54%">
+    &nbsp;SNDR accepted TLS connection</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;</td> 
+    <td height="33" width="11%">
+    &nbsp;</td> 
+    <td height="33" width="23%">
+    &nbsp;</td> 
+    <td height="33" width="54%">
+    &nbsp;</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject</td> 
+    <td height="33" width="11%">
+    &nbsp;ORIG</td> 
+    <td height="33" width="23%">
+    &nbsp;Bad_Mailfrom</td> 
+    <td height="33" width="54%">
+    &nbsp;ORIG is in badmailfrom</td> 
+  </tr>
+  <tr>
+    <td height="30" width="12%">
+    &nbsp;Reject</td> 
+    <td height="30" width="11%">
+    &nbsp;ORIG</td> 
+    <td height="30" width="23%">
+    &nbsp;DNS_MF</td> 
+    <td height="30" width="54%">
+    &nbsp;Domain part of ORIG has no DNS MX RR</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject</td> 
+    <td height="33" width="11%">
+    &nbsp;ORIG</td> 
+    <td height="33" width="23%">
+    &nbsp;Failed_Auth</td> 
+    <td height="33" width="54%">
+    &nbsp;ORIG tried SMTP Authentication; but failed</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject</td> 
+    <td height="33" width="11%">
+    &nbsp;ORIG</td> 
+    <td height="33" width="23%">
+    &nbsp;Invalid_Sender</td> 
+    <td height="33" width="54%">
+    &nbsp;ORIG not allowed to send</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject</td> 
+    <td height="33" width="11%">
+    &nbsp;ORIG</td> 
+    <td height="33" width="23%">
+    &nbsp;Missing_Auth</td> 
+    <td height="33" width="54%">
+    &nbsp;SMTP Authentication required, but not granted</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Info</td> 
+    <td height="33" width="11%">
+    &nbsp;ORIG</td> 
+    <td height="33" width="23%">
+    &nbsp;Valid_Auth</td> 
+    <td height="33" width="54%">
+    &nbsp;ORIG was successful authenticated</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Accept</td> 
+    <td height="33" width="11%">
+    &nbsp;ORIG</td> 
+    <td height="33" width="23%">
+    &nbsp;Local_Sender</td> 
+    <td height="33" width="54%">
+    &nbsp;ORIG was identified as local sender address</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Accept</td> 
+    <td height="33" width="11%">
+    &nbsp;ORIG</td> 
+    <td height="33" width="23%">
+    &nbsp;Relay_Mailfrom</td> 
+    <td height="33" width="54%">
+    &nbsp;ORIG was accepted als Relaymailfrom</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;</td> 
+    <td height="33" width="11%">
+    &nbsp;</td> 
+    <td height="33" width="23%">
+    &nbsp;</td> 
+    <td height="33" width="54%">
+    &nbsp;</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject</td> 
+    <td height="33" width="11%">
+    &nbsp;RCPT</td> 
+    <td height="33" width="23%">
+    &nbsp;Bad_Rcptto</td> 
+    <td height="33" width="54%">
+    &nbsp;RCPT is in badrcptto</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject</td> 
+    <td height="33" width="11%">
+    &nbsp;RCPT</td> 
+    <td height="33" width="23%">
+    &nbsp;Toomany_Rcptto</td> 
+    <td height="33" width="54%">
+    &nbsp;Too many RCPTs</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Reject</td> 
+    <td height="33" width="11%">
+    &nbsp;RCPT</td> 
+    <td height="33" width="23%">
+    &nbsp;Failed_Rcptto</td> 
+    <td height="33" width="54%">
+    &nbsp;RCPT could not acceptd as per recipients/cdb.</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Accept</td> 
+    <td height="33" width="11%">
+    &nbsp;RCPT</td> 
+    <td height="33" width="23%">
+    &nbsp;Recipients_Cdb</td> 
+    <td height="33" width="54%">
+    &nbsp;RCPT was accepted as per recipients/cdb.</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Accept</td> 
+    <td height="33" width="11%">
+    &nbsp;RCPT</td> 
+    <td height="33" width="23%">
+    &nbsp;Recpients_Pam</td> 
+    <td height="33" width="54%">
+    &nbsp;RCPT was accepted per PAM lookup.</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Accept</td> 
+    <td height="33" width="11%">
+    &nbsp;RCPT</td> 
+    <td height="33" width="23%">
+    &nbsp;Recpients_Wild</td> 
+    <td height="33" width="54%">
+    &nbsp;RCPT was accepted per Domain wildlisting in recipients.</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;Accept</td> 
+    <td height="33" width="11%">
+    &nbsp;RCPT</td> 
+    <td height="33" width="23%">
+    &nbsp;Rcpthosts_Rcptto</td> 
+    <td height="33" width="54%">
+    &nbsp;RCPT was accepted as per rcpthosts/morercpthosts</td> 
+  </tr>
+  <tr>
+    <td height="33" width="12%">
+    &nbsp;</td> 
+    <td height="33" width="11%">
+    &nbsp;</td> 
+    <td height="33" width="23%">
+    &nbsp;</td> 
+    <td height="33" width="54%">
+    &nbsp;</td> 
+  </tr></tbody> 
+</table></p>
+
+<dir>
+	<li>SNDR corresponds to the sending MTA.  </li>
+	<li>ORIG is the "MAIL From: &lt;Return-Path&gt;". (Sender)  </li>
+	<li>RCPT is the "RCPT To: &lt;Forwarding-Path&gt;"  (Recipient).  </li>
+	<li>DATA is the Message.</li>
+</dir>
+
+<p>The Information includes typically the following</p>
+
+<ul>
+	<li>PROTOCOL: SMTP/ESMTP/EMSTPA/ESMTPS/ESMTPM  </li>
+	<li>SNDR: IP/FQDN (from tcpserver/sslserver)  </li>
+	<li>HELO/EHLO: The provided greeting string  </li>
+	<li>ORIG: The content of the <tt>Mail From: </tt>(if applicable).  </li>
+	<li>RCPT. The intended <tt>Rcpt To:</tt></li>
+</ul>
+
+<p>This scheme is easy extensible to other successful/deferred
+SMTP sessions. Sample:</p>
+
+<blockquote>
+  <pre>Accept::SNDR::Relay_Client: P:orion.fehnet.de S:81.173.229.48:xdsl-81-173-229-48.netcologne.de H:mail.fehcom.de F:feh@fehcom.de T:erwin@example.com</pre>
+</blockquote>
+
+<h3>9.2 qmail-smtpd Start-Up Script Using tcpserver/sslserver And splogger</h3>
+
+<p>A typical <b>tcpserver/sslserver</b> start script applying standard <b>splogger</b>:</p>
+
+<dl>
+  <dd><tt>#!/bin/sh</tt>
+  </dd><dd><tt>QMAILDUID=`id -u qmaild`<br>
+  QMAILDGID=`id -g qmaild`<br>
+  /usr/local/bin/tcpserver -v -R -H -u $QMAILDUID -g $QMAILDGID
+  QMAIL_IP_ADDRESS smtp \</tt>
+  </dd><dd><tt>&nbsp;&nbsp;/var/qmail/bin/qmail-smtpd /bin/cmd5checkpw
+  true 2&gt;&amp;1 | \ <br>
+  &nbsp;&nbsp;/var/qmail/bin/splogger smtpd &amp;</tt></dd>
+</dl>
+
+<p>Since <b>splogger</b> is now facilitated, ACCUSTAMP time information
+is included.</p>
+
+<h3>9.3 qmail-smtpd Start-Up Script Using Daemontools, tcpserver/sslserver,
+and multilog</h3>
+
+<p>A better choice would be <b>multilog</b>. <b>multilog</b> allows you to write
+separate filtered logs; to individual directories, and/or files,
+STDERR respectively. A typical Daemontools <b>qmail-smtpd</b> <tt>run</tt>
+script would look like:</p>
+
+<dl>
+  <dd><tt>#!/bin/sh</tt>
+  </dd><dd><tt>QMAILDUID=`id -u qmaild`<br>
+  QMAILDGID=`id -g qmaild`<br>
+  /usr/local/bin/tcpserver -R -u $QMAILDUID -g $QMAILDGID QMAIL_IP_ADDRESS
+  smtp \</tt>
+  </dd><dd><tt>&nbsp;&nbsp;&nbsp;/var/qmail/bin/qmail-smtpd /bin/cmd5checkpw
+  true 2&gt;&amp;1</tt>
+</dd></dl>
+
+<p><u>Note</u>: <b>tcpserver/sslserver</b>'s logging via the '-v' flag can be omitted
+to get mostly a full comprehensive and terse one-line logging
+of the SMTP session.</p>
+
+<p>The corresponding <b>multilog</b> <tt>run</tt> script allows not only
+to <i>filter</i> the log information and write them to the file
+"current" in a specific directory but in addition to
+feed a file with specific information; here's a sample:</p>
+
+<dl>
+	<dd><tt>#!/bin/sh</tt> </dd>
+	<dd><tt>exec setuidgid qmaill multilog t \<br>
+		&nbsp;&nbsp;&nbsp;'-*tcpserver: status:*' /var/log/qmail-smtpd\</tt>
+	</dd>
+	<dd><tt>&nbsp;&nbsp;&nbsp;'-*' '+*Reject::*' =/var/log/qmail-smtpd/rejected \</tt>  </dd>
+	<dd><tt>&nbsp;&nbsp;&nbsp;'-*' '+*DNS*' =/var/log/qmail-smtpd/nodnsmx</tt></dd>
+</dl>
+
+<p>In this case, <b>multilog</b> adds at first a TAI64 time stamp.</p>
+
+<ol>
+	<li>In a second step, the log information - except those line
+		including the string "tcpserver: status" - are written
+		into the log file <tt>/var/log/qmail-smtpd/current</tt>.  </li>
+	<li>On the third line the filter "-*" removes any unwanted
+		lines and "+*Reject::*" picks up from qmail-smtpd's
+		log all rejected sessions and placing the last rejected condition
+		in the file '<tt>rejected</tt>'!  </li>
+	<li>On the fourth line the last failing DNS MX lookups for Mail
+		From: &lt;address&gt; is logged in a file named<tt> /var/log/qmail-smtpd/nodnsmx</tt>.</li>
+</ol>
+
+<p>&nbsp;</p>
+<hr align="left">
+<p>&nbsp;</p>
+
+<h2><a name="Howto">10. Howto</h2>
+
+
+<h3>10.1 SPAMCONTROL compile Options</h3>
+
+<p>In this version of SPAMCONTROL I have substantially reduced
+the number of compile-time options:</p>
+
+<p>In order to consistently change all relevant binaries, use
+the file <tt>conf-spamcontrol</tt> which is evaluated by the installation
+routine install_spamcontrol.sh and passes the changes to the Qmail
+c-files:</p>
+
+<dl>
+<dd>
+  <tt># Configuration for SPAMCONTROL (no tabs allowed)<br>
+  #<br>
+  # Additional DELIVERING<br>
+  #<br>
+  verp=yes # allow VERP addresses for RECIPIENTS</br>
+  pam111421=yes # otherwise qmail-smtpd will allow the
+  email in case of PAM failures.<br>
+  </tt>
+</dd>
+</dl>
+
+<h3>10.2 Setting up qmail+SPAMCONTROL</h3>
+
+<p>In case your E-Mail environment complies to the assumption
+in PURPOSE do the following:</p>
+
+<ol>
+	<li>Stop your Qmail system (receive and send).  </li>
+	<li>Remove SMTP/POP3 connection to be serviced by INETD/XINETD.<br>
+		  Employ <b>sslserver</b> (&gt; ucspi-ssl-0.8x) instead.  </li>
+	<li>Follow the <a href="http://www.fehcom.de/qmail/spamcontrol/INSTALL.spamcontrol">INSTALL.spamcontrol</a>
+		  instructions.  </li>
+	<li>To activate <b>qmail-remote</b>'s TLS capabilities create the following file with content:
+	  <ul>
+	  	<li>./control/tlsdestinations<br>
+	  		<tt>*:</tt>
+	  	</li>
+	  <li>Edit the files
+	  <ul>
+	    <li>./control/badhelo</li>
+		<li>./control/badmailfrom</li>
+		<li>./control/badrcptto </li>
+		<li>./control/bouncemaxbytes</li>
+		<li>./control/recipients  </li>
+	</ul>
+	<p>to your needs.</p>
+	</li>
+</ol>
+
+<p><u>In case of TLS support for <b>qmail-smtpd</b> and <b>qmail-pop3d</b>:</u></p>
+
+<ul>
+	<li>Generate a DH PEM file for <b>sslserver</b>.  </li>
+	<li>Generate a X.509 certificate and a keyfile (in PEM format)
+	   for <b>sslserver</b> used for <b>qmail-smtpd</b> and populate
+		  the required environment variables.  </li>
+	<li>
+</ul>
+
+<p>See above samples and check the included samples for ./badmailfrom
+and ./badrcptto.</p>
+
+<p><u>TLS support for <b>qmail-remote</b> depends on:</u></p>
+
+<ul>
+	<li>Modify <u>control/tlsdestinations</u>
+		to your demands (typically a "<tt>*:</tt>" would do).</li>
+	<li>In case <b>qmail-remote</b> has to serve a X.509 certificate,
+		generate or acquire the X.509 certificates and keyfiles 
+		per domain and include those into <u>control/domaincerts</u>
+		to be readable by <b>qmail-remote</b>.</li>
+</ul>
+		
+
+<p><u>Restart Qmail:</u></p>
+
+<ol>
+	<li>Check your configuration by means of <b>qmail-showctl</b>. It is
+		a good idea to pipe the output of that command with timestamp
+		information to a file.  </li>
+	<li>Test your filters locally (check TEST.* in ./doc directory).  </li>
+	<li>If you are already blacklisted, inform those sites that you
+		don't act as an OPEN RELAY anymore.  </li>
+	<li>Watch the Qmail behavior by means of the log file information.</li>
+</ol>
+
+<p><b>Good luck!</b></p>
+
+
+<h3>10.3 Incompatibilities</h3>
+
+<p>The SPAMCONTROL patch is incompatible with the <a href="http://www.nrg4u.com/">Qmail
+LDAP</a> patch. It should be applied against <i>qmail-1.03</i>
+and not against <i>netqmail-1.0x</i>.</p>
+
+<h3>10.4 AMD64 and clang support</h3>
+
+<p>SPAMCONTROL will happily run under AMD64 and compile successfully with
+<b>clang</b> under the following conditions:
+
+<ul>
+  <li>Set <tt>__amd64__=yes</tt> in <u>conf-spamcontrol</u></li>
+  <li>Change <b>cc</b> to <b>clang</b> in <u>conf-cc</u> and leave the
+  arguments untouched</li>
+  <li>Use the following script to change '<tt>void main(...)</tt>' to
+  '<tt>int main(...)</tt>' in the installation directory:</li>
+</ul>
+
+<tt>
+#!/usr/local/bin/ksh</br>
+<br>
+FILES=$(grep -l "void main" *.c)</br>
+
+for FILE in $FILES; do</br>
+&nbsp; echo $FILE</br>
+&nbsp; sed s/void\ main/int\ main/ $FILE > $FILE.new</br>
+&nbsp; mv $FILE.new $FILE</br>
+done</br>
+</tt>
+
+<p>&nbsp;</p>
+<hr align="left">
+<p>&nbsp;</p>
+
+<h2><a name="Authors">11. Authors</h2>
+
+<p>Major enhancements for SPAMCONTROL are taken from these authors:</p>
+
+<ul>
+	<li>Rask Ingemann Lambertsen - who provided the original RELAY  Patch  </li>
+	<li>Marc Pohl - ported it to Qmail 1.03 </li>
+	<li>Mark Delany - Author of the WILDMAT Patch </li>
+	<li>Nagy Balazs - Author of the MFCHECK Patch </li>
+	<li>Chris Johnson - Auther of the TARPIT and RELAYMAILFROM patch </li>
+	<li>Scott Gifford - Invented the IPME and MOREIPME extension </li>
+	<li>Will Harris - Author of the SIZE extension patch </li>
+	<li>Markus Stumpf - provided the original LOGGING patch  </li>
+	<li>Manon Goo - suggested exiting the SMTP session in case of  SPAM  </li>
+	<li>Charles Cazabon - Author of the NULL-Sender modifcation  </li>
+	<li>Erik Sjoelund - Reported the qmail-local flaw  </li>
+	<li>Phil Edwards - Patched qmail (and others) to work with the  new gcc 3.2  </li>
+	<li>Krzysztof Dabrowski - Included the SMTP Auth support.  </li>
+	<li>Russell Nelson - Author of the qmail-smtpd-viruscan-1.1.patch,  and the doublebounceto trim  </li>
+	<li>Bruce Guenter - Author to the big-todo and Qmail Queue-Extra  patch  </li>
+	<li>Andre Oppermann - Auther of the qmail-send patch (and many  others like qmail-ldap)  </li>
+	<li>Frank Denis - Patched qmail-send to limit the size of bounces  </li>
+	<li>David Phillips - Introduced the 'sendmail -f' compatibility  </li>
+	<li>Matthias Andree - Found the 'qmail-local tab' bug and introduced  
+		the 'sendmail -N dsn' compatibility and introduced flexible MX  lookup for qmail-remote  </li>
+	<li>Alin-Adrian Anton - Fixed qmail-smtpd vulnurability for very long header lines  </li>
+	<li>Bjoern Kalkbrenner - Initial auther of the qmail-smtp-auth-send  patch.  </li>
+	<li>Peter Ladwig - had the idea to use hard tarpitting in case  of too many invalid RECIPIENTS.  </li>
+	<li>Scott Gifford - inventor of the STARTTLS implementation.  </li>
+	<li>Alberto Brealey Guzmain - for the outgoingip patch.  </li>
+	<li>Andrew Reilly - the FreeBSD user of the AMD64 fixes I used.</li>
+</ul>
+
+<p>&nbsp;</p>
+<hr align="left">
+<p>&nbsp;</p>
+
+<h2><a name="Thanks">12. Thanks</h2>
+
+<p>Thanks to the discussion in the Qmail Mailing List (qmail@list.cr.yp.to)
+in particular:</p>
+
+<ul>
+  <li>Russell Nelson
+  </li><li>Vincent Schonau
+  </li><li>Chris Johnson
+  </li><li>Metthew Soffen
+  </li><li>L. Bezerra de A. Junior
+  </li><li>Bernat Ginard
+  </li><li>Duzgun Gul
+  </li><li>Sven Paas
+  </li><li>Bruno Cesar
+  </li><li>Dallas Engelken (once more)
+  </li><li>Ryan Cresawn
+  </li><li>Timo T. Rajala
+  </li><li>Markus Stumpf (once more)
+  </li><li>Shantanu
+  </li><li>Uwe Ohse
+  </li><li>Hari Bhaskaran
+  </li><li>Bruno Carlos
+  </li><li>Chaepil Lim
+  </li><li>Richard Lyons
+  </li><li>Eduardo CortÈs
+  </li><li>Ed Henderson
+  </li><li>Jody Stuart
+  </li><li>Claudiu
+  </li><li>Marcin Siennicki
+  </li><li>D Kelmi
+  </li><li>Igor Korovkin
+  </li><li>Aleksander Boczko
+  </li><li>Ralf Guenthner (for carefully debugging this README)
+  </li><li>Dominik Koch
+  </li><li>Renato Botelho/Sirko Zidlewitz (maintaining the BSD Port)
+  </li><li>Robert Schulze (identifying the flaw in rcpthosts)
+  </li><li>Christopher Weimann (qqx problem; environment variables in
+  qmail-smtpd)
+</li></ul>
+
+<p>Erwin Hoffmann (feh@fehcom.de)<br>
+<i>Hoehn, 2013-08-23</i>
+
+</p>
+</body></html>

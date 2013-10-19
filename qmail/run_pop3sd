@@ -1,0 +1,8 @@
+#!/bin/sh
+HOSTNAME=`hostname`
+. /var/qmail/ssl/env
+exec /usr/local/bin/sslserver -sev -Rp -l $HOSTNAME \
+    -x /var/qmail/etc/rules.pop3sd.cdb \
+    0 pop3s \
+    /var/qmail/bin/qmail-popup $HOSTNAME /usr/local/bin/checkvpw \
+    /var/qmail/bin/qmail-pop3d Maildir 2>&1 5>&1

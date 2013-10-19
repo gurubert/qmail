@@ -1,0 +1,4 @@
+../djbdns-1.05/qmail.a
+#
+# Adjust this line to the djbdns target dir, enhanced for qmail support
+#

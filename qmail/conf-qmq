@@ -1,0 +1,8 @@
+## Here, you define the multiple queue instances by name
+#
+#00:Internal_me	#	Mails for me will be delivered here
+#01:Customer_1	#	1st Customer delivery instance 		
+#02:Customer_2	#	2nd Customer delivery instance
+#80:INTERNET	#	Regular Mails send to the INTERNET are going this way
+#90:BOUNCES	#	Bounce Mails will make that way; avoid blacklisting by means of a separate IP
+#99:BACKUP	#	Spam and Virus storms will be redirected to this instance -- on demand

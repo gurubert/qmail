@@ -1,4 +1,5 @@
 #include "cdbmake.h"
+#include "alloc.h"
 
 void cdbmake_init(cdbm)
 struct cdbmake *cdbm;

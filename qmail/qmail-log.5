@@ -7,7 +7,7 @@ prints a series of lines describing its activities.
 Each possible line is described below.
 .SH "STATUS"
 .TP
-.B status: local \fIl\fB/\fIL\fB remote \fIr\fB/\fIR\fB ...
+.B status: local \fIl\fR/\fIL\fR remote \fIr\fR/\fIR\fR ...
 .B qmail-send
 is waiting for
 .I l
@@ -75,7 +75,7 @@ but it is unable to read the new controls.
 It will continue operating with the original controls.
 .SH "MESSAGES"
 .TP
-.B new msg \fIm\fB
+.B new msg \fIm\fR
 .B qmail-send
 is going to preprocess a queued message.
 The message number,
@@ -84,7 +84,7 @@ is its disk inode number.
 After a message is removed from the queue,
 its number can be reused immediately.
 .TP
-.B info msg \fIm\fB: bytes \fIb\fB from <\fIs\fB> qp \fIq\fB uid \fIu\fB
+.B info msg \fIm\fR: bytes \fIb\fR from <\fIs\fR> qp \fIq\fR uid \fIu\fR
 Message
 .I m
 contains
@@ -100,13 +100,20 @@ the process ID of the
 .B qmail-queue
 that queued the message.
 .TP
-.B bounce msg \fIm\fB qp \fIq\fB
+.B bounce msg \fIm\fR qp \fIq\fR
 Message
 .I m
 had some delivery failures.
 The long-term queue identifier of the bounce (or double-bounce) message
 is
 .IR q .
+.TP
+.B double bounce: discarding ...
+Message
+.I m
+was discarded due to an \'empty\' recipient in 
+.
+.IR doublebounceto .
 .TP
 .B triple bounce: discarding ...
 Message
@@ -116,7 +123,7 @@ but it is already a double-bounce message,
 so it must be thrown away.
 Triple-bounce messages do not exist.
 .TP
-.B end msg \fIm\fB
+.B end msg \fIm\fR
 .B qmail-send
 is about to remove
 message
@@ -124,7 +131,7 @@ message
 from the queue.
 .SH "DELIVERIES"
 .TP
-.B starting delivery \fId\fB: msg \fIm\fB to ...
+.B starting delivery \fId\fR: msg \fIm\fR to ...
 .B qmail-send
 is telling
 .B qmail-lspawn
@@ -137,24 +144,24 @@ The delivery number,
 .IR d ,
 starts at 1 and increases by 1 for each new delivery.
 .TP
-.B delivery \fId\fB: success: ...
+.B delivery \fId\fR: success: ...
 Delivery
 .I d
 was successful.
 .TP
-.B delivery \fId\fB: failure: ...
+.B delivery \fId\fR: failure: ...
 Delivery
 .I d
 failed permanently.
 The message will bounce.
 .TP
-.B delivery \fId\fB: deferral: ...
+.B delivery \fId\fR: deferral: ...
 Delivery
 .I d
 failed temporarily.
 This recipient will be retried later.
 .TP
-.B delivery \fId\fB: report mangled, will defer
+.B delivery \fId\fR: report mangled, will defer
 There is a serious bug in
 .B qmail-lspawn
 or
@@ -232,6 +239,11 @@ It will try again later.
 is unable to queue a bounce message,
 usually because the machine is almost out of memory.
 It will try again later.
+This can also be caused by incorrect settings of
+.B $QMAILQUEUE
+or errors in a program or script which
+.B $QMAILQUEUE
++points to.
 .TP
 .B unable to stat ...
 .B qmail-send
@@ -257,5 +269,173 @@ There is a serious bug in either
 .B qmail-queue
 or
 .BR qmail-send .
+
+.SH "UNIFIED SMTPD/POP3D LOGGING"
+.B qmail-smtpd
+and
+.B qmail-popup
+log additional information in a unified extensible format
+\fIAction::Type::Condition\fR \fIInformation\fR.
+
+.B Action 
+is either
+.IR Reject , 
+.IR Accept ,
+or additionally
+.IR Info .
+
+The
+.B Type
+belongs to the following information:
+.TP
+.I SNDR 
+the client's hostname, 
+.TP
+.I TLS 
+labeling TLS connections, 
+.TP
+.I AUTH
+for Authenticated sessions. Further
+.TP
+.I ORIG
+relates to the return path \fIF:<Return-Path>\fR, and 
+.TP
+.I RCTP 
+to the forwarding path \fIT:<Forwarding-Path>\fR, and finally
+.TP
+.I DATA  
+to the message.
+
+.TP 0
+The following \fBConditions\fR are provided:
+.TP 4
+.I Bad_Helo
+the client's HELO/EHLO greeting string was found in 
+.IR badhelo
+or rejected because of one of the following conditions indicated
+in the information section: '!' (HELO/EHLO not provided/empty)
+, '\.'/'*' (HELO/EHLO rejected due to a direct/wildmat match with entries in
+.IR badhelo ).
+.TP
+.I Bad_Loader
+the content of a base64 encoded MIME part matched an
+entry in 
+.IR badloadertypes.cdb .
+.TP
+.I Bad_MIME
+a base64 encoded MIME part matched an entry n
+.IR badmimetypes.cdb . 
+.TP
+.I Bad_Mailfrom 
+the provided <Return-Path> matched an entry in
+.I badmailfrom 
+additionally with the rejection conditions: '@' (address), '*'
+(wildmat), '-' (badmailfromunknown), and '+' (spoofing). 
+.TP
+.I Bad_Rcptto
+the provided <Forwarding-Path> matched an entry in
+.IR badrcptto .
+.TP 
+.I DNS_Helo 
+the client's HELO/EHLO greeting did not match it's
+FQDN or no DNS A/MX RR was found as indicated with the 
+following symbols: '=' (HELO/EHLO does not match 
+.BR TCPREMOTEHOST )
+, 'A' (DNS A-Name lookup failed for HELO/EHLO)
+, 'M' (DNS MX lookup failed for HELO/EHLO).
+.TP
+.I DNS_MF 
+no DNS MX RR was found for the <Return-Path>.
+.TP 
+.I Failed_Rcptto
+the <Forwarding-Path> did not match entry in the provdided
+cdbs as per
+.IR recipients .
+.TP
+.I Invalid_Relay 
+the none-RELAYCLIENT provided a <Forwarding-Path> not
+allowed as per
+.I rcpthosts 
+or 
+.IR morercpthosts.cdb .
+.TP
+.I Invalid_Sender
+the <Return-Path> of a RELAYCLIENT did not match the 
+provided value of LOCALMFCHECK or did not match against
+.I mailfromrules.cdb
+or was not found in 
+.I rcpthosts
+or 
+.IR morercpthosts.cdb . 
+.TP
+.I Invalid_Size 
+the message size exceeded the maximum as provided by
+DATEBYTES or 
+.IR databytes .
+.TP
+.I Toomany_Rcptto 
+the number of Recipients ('RCPT TO:') exaggerated the
+value provided as MAXRECPIENTS.
+.TP
+.I Cipher
+TLS session used this cipher.
+.TP 
+.I Missing
+depending on the context, either the required
+Start-TLS or AUTH is not granted.
+.TP
+.I Pam
+SMTP authentication was granted by pam. 
+.TP
+.I Recipients_Rcptto
+the <Forwarding-Path> matched an entry in the cdbs available per 
+.IR reccients .
+.TP
+.I Recipients_Verp
+the Forwarding-Path was recogized as VERP and matched an entry
+in the cdbs available per
+.IR recipients .
+.TP 
+.I Recipients_Domain
+the Forwarding-Path matched a wildcard domain entry in the cdbs
+available per
+.IR recipients .
+.TP 
+.I Rcpthosts_Rcptto
+the domain part of the <Forwarding-Path> matched an entry in
+.I rcpthosts
+or
+.IR morercpthosts.cdb .
+
+.TP 0
+The displayed \fBInformation\fR:
+
+.TP 4
+.I P:protocol
+the effective SMTP or POP3 protocol in use.
+.TP
+.I S:IP:FQDN
+the client's IP and FQDN address available via
+TCPREMOTEIP and TCPREMOTEHOST.
+.TP
+.I H:string
+the client's HELO/EHLO greeting string.
+.TP
+.I F:Return-Path
+the provided 'MAIL FROM:' address (if any).
+.TP
+.I T:Forwarding-Path
+the given 'RCPT TO:' address.
+.TP
+.I ?= 'userid' 
+in case of SMTP authentication the provided userid.
+.TP
+.I != 'DN'
+in case of a TLS session, the presented client's
+\'Subject\' Distinguished Name (DN) - if available
+(otherwise \'unknown\').
+
 .SH "SEE ALSO"
-qmail-send(8)
+qmail-send(8),
+qmail-smtpd(8),
+qmail-control(9)

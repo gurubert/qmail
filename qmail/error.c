@@ -93,3 +93,10 @@ EACCES;
 #else
 -13;
 #endif
+
+int error_proto =
+#ifdef EPROTO
+EPROTO;
+#else
+-15;
+#endif

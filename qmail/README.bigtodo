@@ -1,0 +1,12 @@
+README.bigtodo
+
+Bruce Guenther's "Bigtodo" patch:
+
+Note to readers: After you apply this patch, your queue will no longer
+be readable in its current state.  So, either install this into
+/var/qmail2 and run both qmails until the queue is emptied on the old
+one, or else accept that your current queue will have to be destroyed
+and ``rm -rf /var/qmail/queue; make setup''.
+
+Bruce Guenter <bruceg@em.ca>                       http://em.ca/~bruceg/
+

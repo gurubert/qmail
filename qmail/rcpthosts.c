@@ -2,12 +2,14 @@
 #include "byte.h"
 #include "open.h"
 #include "error.h"
+#include "exit.h"
 #include "control.h"
 #include "constmap.h"
 #include "stralloc.h"
 #include "rcpthosts.h"
 
 static int flagrh = 0;
+static int flagmrh = 0;
 static stralloc rh = {0};
 static struct constmap maprh;
 static int fdmrh;
@@ -18,7 +20,8 @@ int rcpthosts_init()
   if (flagrh != 1) return flagrh;
   if (!constmap_init(&maprh,rh.s,rh.len,0)) return flagrh = -1;
   fdmrh = open_read("control/morercpthosts.cdb");
-  if (fdmrh == -1) if (errno != error_noent) return flagrh = -1;
+  if (fdmrh == -1) if (errno != error_noent) return flagmrh = -1;
+  if (fdmrh > 0) flagmrh = 1;
   return 0;
 }
 
@@ -45,7 +48,9 @@ int len;
     if (!j || (buf[j] == '.'))
       if (constmap(&maprh,buf + j,len - j)) return 1;
 
-  if (fdmrh != -1) {
+  if (flagmrh == 1) {
+    fdmrh = open_read("control/morercpthosts.cdb");
+    if (fdmrh == -1) if (errno == error_noent) return 0;
     uint32 dlen;
     int r;
 
@@ -54,6 +59,7 @@ int len;
 	r = cdb_seek(fdmrh,buf + j,len - j,&dlen);
 	if (r) return r;
       }
+    close(fdmrh);
   }
 
   return 0;
