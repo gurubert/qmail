@@ -814,6 +814,7 @@ void smtp_mail(arg) char *arg;
 void smtp_rcpt(arg) char *arg; {
   if (!seenmail) { err_wantmail(); return; }
   if (!addrparse(arg)) { err_syntax(); return; }
+  if (!str_len(addr.s)) { err_nullrcpt("Reject::RCPT::Empty",protocol.s,remoteip,remotehost,helohost.s,mailfrom.s,addr.s); return; }
   rcptcount++;
 
 /* this file is too long --------------------------------- Sesssion checks */

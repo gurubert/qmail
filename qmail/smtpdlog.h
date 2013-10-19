@@ -59,4 +59,6 @@ void err_notorious();
 void err_size(void);
 void err_data();
 
+void err_nullrcpt();
+
 #endif

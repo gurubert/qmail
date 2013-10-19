@@ -221,3 +221,8 @@ void err_data(s1,s2,s3,s4,s5,s6,s7,s8) char *s1, *s2, *s3, *s4, *s5, *s6, *s7, *
   smtp_logi(s1,s2,s3,s4,s5,s6,s7,s8);
   return;
 }
+void err_nullrcpt(s1,s2,s3,s4,s5,s6,s7) char *s1, *s2, *s3, *s4, *s5, *s6, *s7;
+{
+  out("553 unable to accept empty recipient address\r\n");
+  smtp_logi(s1,s2,s3,s4,s5,s6,s7,"empty recipient");
+}
