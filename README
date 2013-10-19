@@ -1,1 +1,5 @@
-This branch contains the vanilla qmail-1.03 sources
+This branch contains the qmail-smtpd-auth-0.31 patch
+
+Applied qmail-smtpd-auth-0.31 patch which original author site is no longer
+reachable hence downloaded from http://tomclegg.net/qmail/qmail-smtpd-auth-0.31.tar.gz
+
