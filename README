@@ -1,1 +1,12 @@
-This branch contains the vanilla qmail-1.03 sources
+This branch contains the ext-todo patch
+
+EXTTODO by Claudio Jeker <jeker@n-r-g.com> and
+Andre Oppermann <opi@nrg4u.com>
+(c) 1998,1999,2000,2001,2002 Internet Business Solutions Ltd.
+
+The EXTTODO patch is a part of the qmail-ldap patch.
+This patches for qmail come with NO WARRANTY.
+
+These patches are under the BSD license.
+
+RELEASE: current ($Date: 2002/04/22 10:03:16 $)
