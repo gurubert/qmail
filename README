@@ -1,1 +1,8 @@
-This branch contains the vanilla qmail-1.03 sources
+This branch removes the ANY DNS query when only CNAME is needed
+
+You can save yourself a lot of trouble, and you can optimize qmail by trimming
+its DNS requests to only the information it really needs.
+
+Jonathan de Boyne Pollard wrote this one-liner.
+
+See http://homepage.ntlworld.com/jonathan.deboynepollard/Softwares/qmail/
