@@ -1,1 +1,15 @@
-This branch contains the vanilla qmail-1.03 sources
+This branch contains the smtpd-502-to-500 patch
+
+Fix qmail-smtpd so that it responds with a 500 error code to unrecognized
+SMTP commands instead of a 502 error code (aka RFC2821)
+
+This patch modifies the behavior of qmail-smtpd so that it responds with a 500
+error code to unrecognized SMTP commands instead of a 502 error code. It's a
+minor distinction, but RFC2821 (published several years after the current
+version of qmail) said that's the way it should be done. Which, unless you
+have a good reason, RFC SHOULD's mean just that. Since it's trivial, here it
+is. This patch was written by Jonathan de Boyne Pollard.
+
+Original patch:
+http://homepages.tesco.net/~J.deBoynePollard/Softwares/qmail/smtpd-502-to-500.patch
+http://www.memoryhole.net/qmail/smtpd-502-to-500.patch
