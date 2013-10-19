@@ -1,1 +1,9 @@
-This branch contains the vanilla qmail-1.03 sources
+This branch contains the QMAILQUEUE patch
+
+Bruce Guenter has written a patch which causes any program that would run
+qmail-queue to look for an environment variable QMAILQUEUE. If it is present,
+it is used in place of the string "bin/qmail-queue" when running qmail-queue.
+This could be used, for example, to add a program into the
+qmail-smtpd->qmail-queue pipeline that could do filtering, rewrite broken
+headers, etc.
+See http://untroubled.org/qmail/ for more information.
