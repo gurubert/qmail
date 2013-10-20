@@ -58,6 +58,7 @@ void err_wantrcpt() { out("503 RCPT first (#5.5.1)\r\n"); }
 void err_noop() { out("250 ok\r\n"); }
 void err_vrfy() { out("252 send some mail, i'll try my best\r\n"); }
 void err_qqt() { out("451 qqt failure (#4.3.0)\r\n"); }
+void err_nullrcpt() { out("553 unable to accept empty recipient address\r\n"); };
 
 
 stralloc greeting = {0};
@@ -250,6 +251,7 @@ void smtp_mail(arg) char *arg;
 void smtp_rcpt(arg) char *arg; {
   if (!seenmail) { err_wantmail(); return; }
   if (!addrparse(arg)) { err_syntax(); return; }
+  if (!addr.len) { err_nullrcpt(); return; }
   if (flagbarf) { err_bmf(); return; }
   if (relayclient) {
     --addr.len;
