@@ -14,6 +14,7 @@ struct constmap {
 } ;
 
 extern int constmap_init();
+extern int constmap_init_char();
 extern void constmap_free();
 extern char *constmap();
 
