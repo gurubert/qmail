@@ -1,1 +1,44 @@
-This branch contains the vanilla qmail-1.03 sources
+This branch contains the qmail-queue-custom-error patch
+
+Adds the possibility for a qmail-queue-replacement to offer custom
+error (=bounce) messages.
+
+You have to write the error message to filedescriptor 4 and exit 82, 
+in order to use the custom message. Format of the message:
+
+Dthis is a custom fatal error message
+Zthis is a custom temporary failure message
+
+Thanks to Richard Lyons <frob-qmail webcentral.com.au> for spotting a 
+wrong errstr declaration.
+
+Thanks to Jeremy Hinton for noting to include the patch to qmail.h
+
+This patch has been made by Flavio Curti <fcu-software at no-way.org> and is
+provided AS IS. Do with it as you wish, I'm not responsible for anything that
+breaks because of this patch.
+
+EXAMPLES
+
+Perl:
+open(FD,">&4");
+print FD "Ztemporary failure message";
+close(FD);
+exit(82);
+
+Shell:
+echo -n "Zpermanent failure after data" >&4
+exit 82;
+
+C (non-djb-style):
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+
+char    err[] = "Zpermanently refusing";
+
+int main() {
+        write(4,err,(strlen(err)+1));
+        exit(82);
+}
+
