@@ -1,4 +1,4 @@
-cc -O2  -include /usr/include/errno.h -fno-strict-aliasing -pipe -g
+cc -O2  -include /usr/include/errno.h -fno-strict-aliasing -pipe -g -DINET6 -DTCPTO_REFUSED
 
 This will work for both i386 and AMD64 architecture.
 

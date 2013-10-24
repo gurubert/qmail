@@ -24,10 +24,23 @@ struct ip_address *ip;
   int i;
   if (ipme_init() != 1) return -1;
   for (i = 0;i < ipme.len;++i)
-    if (byte_equal(&ipme.ix[i].ip,4,ip))
+    if (ipme.ix[i].af == AF_INET && byte_equal(&ipme.ix[i].addr.ip,4,ip))
       return 1;
   return 0;
 }
+
+#ifdef INET6
+int ipme_is6(ip)
+struct ip6_address *ip;
+{
+  int i;
+  if (ipme_init() != 1) return -1;
+  for (i = 0;i < ipme.len;++i)
+    if (ipme.ix[i].af == AF_INET6 && byte_equal(&ipme.ix[i].addr.ip6,16,ip))
+      return 1;
+  return 0;
+}
+#endif
 
 static stralloc buf = {0};
 
@@ -37,6 +50,9 @@ int ipme_init()
   char *x;
   struct ifreq *ifr;
   struct sockaddr_in *sin;
+#ifdef INET6
+  struct sockaddr_in6 *sin6;
+#endif
   int len;
   int s;
   struct ip_mx ix;
@@ -77,11 +93,22 @@ int ipme_init()
       len = sizeof(*ifr);
     if (ifr->ifr_addr.sa_family == AF_INET) {
       sin = (struct sockaddr_in *) &ifr->ifr_addr;
-      byte_copy(&ix.ip,4,&sin->sin_addr);
+      byte_copy(&ix.addr.ip,4,&sin->sin_addr);
+      ix.af = AF_INET;
       if (ioctl(s,SIOCGIFFLAGS,x) == 0)
         if (ifr->ifr_flags & IFF_UP)
           if (!ipalloc_append(&ipme,&ix)) { close(s); return 0; }
     }
+#ifdef INET6
+	else if (ifr->ifr_addr.sa_family == AF_INET6) {
+      sin6 = (struct sockaddr_in6 *) &ifr->ifr_addr;
+      byte_copy(&ix.addr.ip6,16,&sin6->sin6_addr);
+      ix.af = AF_INET6;
+      if (ioctl(s,SIOCGIFFLAGS,x) == 0)
+        if (ifr->ifr_flags & IFF_UP)
+          if (!ipalloc_append(&ipme,&ix)) { close(s); return 0; }
+    }
+#endif
 #else
     len = sizeof(*ifr);
     if (ioctl(s,SIOCGIFFLAGS,x) == 0)
@@ -89,9 +116,18 @@ int ipme_init()
         if (ioctl(s,SIOCGIFADDR,x) == 0)
 	  if (ifr->ifr_addr.sa_family == AF_INET) {
 	    sin = (struct sockaddr_in *) &ifr->ifr_addr;
-	    byte_copy(&ix.ip,4,&sin->sin_addr);
+        ix.af = AF_INET;
+	    byte_copy(&ix.addr.ip,4,&sin->sin_addr);
 	    if (!ipalloc_append(&ipme,&ix)) { close(s); return 0; }
 	  }
+#ifdef INET6
+      else if (ifr->ifr_addr.sa_family == AF_INET6) {
+	    sin6 = (struct sockaddr_in6 *) &ifr->ifr_addr;
+        ix.af = AF_INET6;
+	    byte_copy(&ix.addr.ip6,16,&sin6->sin6_addr);
+	    if (!ipalloc_append(&ipme,&ix)) { close(s); return 0; }
+	  }
+#endif
 #endif
     x += len;
   }
@@ -99,3 +135,17 @@ int ipme_init()
   ipmeok = 1;
   return 1;
 }
+
+#ifdef INET6
+int ipme_is46(mxip)
+struct ip_mx *mxip;
+{
+  switch(mxip->af) {
+  case AF_INET:
+    return ipme_is(&mxip->addr.ip);
+  case AF_INET6:
+    return ipme_is6(&mxip->addr.ip6);
+  }
+  return 0;
+}
+#endif

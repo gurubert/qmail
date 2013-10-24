@@ -100,3 +100,10 @@ EPROTO;
 #else
 -15;
 #endif
+
+int error_refused =
+#ifdef ECONNREFUSED
+ECONNREFUSED;
+#else
+-14;
+#endif

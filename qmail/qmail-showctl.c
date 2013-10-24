@@ -250,6 +250,8 @@ int main()
       else
         substdio_puts(subfdout,"Modified recently enough; hopefully up to date.\n");
   do_lst("badrcptto","Any RCPT TO is allowed.",""," not accepted in RCPT TO.");
+  do_lst("bindroutes","No binding IPv4 routes.","Binding IPv4 route: ","");
+  do_lst("bindroutes6","No binding IPv6 routes.","Binding IPv6 route: ","");
   do_str("bouncefrom",0,"MAILER-DAEMON","Bounce user name is ");
   do_str("bouncehost",1,"bouncehost","Bounce host name is ");
   do_int("bouncemaxbytes","0","Bounce size limit is "," bytes");
@@ -259,11 +261,14 @@ int main()
   do_str("defaultdomain",1,"defaultdomain","Default domain name is ");
   do_str("defaulthost",1,"defaulthost","Default host name is ");
   do_lst("domaincerts","No domain certs defined.","Domain certs: ","");
+  do_lst("domainbindings","No sender domain based local IPv4 bindings.","Sender domain local IPv4 binding: ","");
+  do_lst("domainbindings6","No sender domain based local IPv6 bindings.","Sender domain local IPv6 binding: ","");
   do_lst("domainips","No domain ip mappings defined.","Map from sender domain part to local ip: ","");
   do_str("doublebouncehost",1,"doublebouncehost","2B recipient host: ");
   do_str("doublebounceto",0,"postmaster","2B recipient user: ");
   do_str("envnoathost",1,"envnoathost","Presumed domain name is ");
   do_str("helohost",1,"helohost","SMTP client HELO host name is ");
+  do_lst("helohostbindings","No sender helohost based local ip bindings (default to me).","Sender helohost local IP binding: ","");
   do_str("idhost",1,"idhost","Message-ID host name is ");
   do_str("localiphost",1,"localiphost","Local IP address becomes ");
   do_lst("locals","Messages for me are delivered locally.","Messages for "," are delivered locally.");
@@ -286,6 +291,8 @@ int main()
       else
         substdio_puts(subfdout,"Modified recently enough; hopefully up to date.\n");
 
+  do_str("outgoingip",0,"0.0.0.0","Outgoing IP address is ");
+  do_str("outgoingip6",0,"0:0:0:0:0:0:0:0","Outgoing IPv6 address is ");
   do_lst("percenthack","The percent hack is not allowed.","The percent hack is allowed for user%host@",".");
   do_str("plusdomain",1,"plusdomain","Plus domain name is ");
   do_lst("qmqpservers","No QMQP servers.","QMQP server: ",".");
@@ -331,6 +338,8 @@ int main()
     if (str_equal(d->d_name,"badloadertypes.cdb")) continue;
     if (str_equal(d->d_name,"badmimetypes")) continue;
     if (str_equal(d->d_name,"badmimetypes.cdb")) continue;
+    if (str_equal(d->d_name,"bindroutes")) continue;
+    if (str_equal(d->d_name,"bindroutes6")) continue;
     if (str_equal(d->d_name,"bouncefrom")) continue;
     if (str_equal(d->d_name,"bouncehost")) continue;
     if (str_equal(d->d_name,"bouncemaxbytes")) continue;
@@ -340,11 +349,14 @@ int main()
     if (str_equal(d->d_name,"defaultdomain")) continue;
     if (str_equal(d->d_name,"defaulthost")) continue;
     if (str_equal(d->d_name,"domainips")) continue;
+    if (str_equal(d->d_name,"domainbindings")) continue;
+    if (str_equal(d->d_name,"domainbindings6")) continue;
     if (str_equal(d->d_name,"domaincerts")) continue;
     if (str_equal(d->d_name,"doublebouncehost")) continue;
     if (str_equal(d->d_name,"doublebounceto")) continue;
     if (str_equal(d->d_name,"envnoathost")) continue;
     if (str_equal(d->d_name,"helohost")) continue;
+    if (str_equal(d->d_name,"helohostbindings")) continue;
     if (str_equal(d->d_name,"idhost")) continue;
     if (str_equal(d->d_name,"localiphost")) continue;
     if (str_equal(d->d_name,"locals")) continue;
@@ -353,6 +365,8 @@ int main()
     if (str_equal(d->d_name,"mailfromrules.cdb")) continue;
     if (str_equal(d->d_name,"morercpthosts")) continue;
     if (str_equal(d->d_name,"morercpthosts.cdb")) continue;
+    if (str_equal(d->d_name,"outgoingip")) continue;
+    if (str_equal(d->d_name,"outgoingip6")) continue;
     if (str_equal(d->d_name,"percenthack")) continue;
     if (str_equal(d->d_name,"plusdomain")) continue;
     if (str_equal(d->d_name,"qmqpservers")) continue;

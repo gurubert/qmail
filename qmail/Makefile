@@ -606,6 +606,10 @@ fmt_ulong.o: \
 compile fmt_ulong.c fmt.h
 	./compile fmt_ulong.c
 
+fmt_xlong.o: \
+compile fmt_xlong.c fmt.h
+	./compile fmt_xlong.c
+
 fmtqfn.o: \
 compile fmtqfn.c fmtqfn.h fmt.h auto_split.h
 	./compile fmtqfn.c
@@ -638,9 +642,9 @@ strerr.h substdio.h fmt.h
 
 fs.a: \
 makelib fmt_str.o fmt_strn.o fmt_uint.o fmt_uint0.o fmt_ulong.o \
-scan_ulong.o scan_8long.o
+fmt_xlong.o scan_ulong.o scan_8long.o scan_xlong.o
 	./makelib fs.a fmt_str.o fmt_strn.o fmt_uint.o fmt_uint0.o \
-	fmt_ulong.o scan_ulong.o scan_8long.o
+	fmt_ulong.o fmt_xlong.o scan_ulong.o scan_8long.o scan_xlong.o
 
 getln.a: \
 makelib getln.o getln2.o
@@ -802,7 +806,7 @@ compile instcheck.c strerr.h error.h readwrite.h exit.h
 	./compile instcheck.c
 
 ip.o: \
-compile ip.c fmt.h scan.h ip.h
+compile ip.c fmt.h scan.h ip.h byte.h
 	./compile ip.c
 
 ipalloc.o: \
@@ -1490,10 +1494,10 @@ auto_usera.h
 
 qmail-qmqpc: \
 load qmail-qmqpc.o slurpclose.o timeoutread.o timeoutwrite.o \
-timeoutconn.o ip.o control.o auto_qmail.o sig.a ndelay.a open.a \
+timeoutconn.o constmap.o case.a ip.o control.o auto_qmail.o sig.a ndelay.a open.a \
 getln.a substdio.a stralloc.a alloc.a error.a str.a fs.a socket.lib
 	./load qmail-qmqpc slurpclose.o timeoutread.o \
-	timeoutwrite.o timeoutconn.o ip.o control.o auto_qmail.o \
+	timeoutwrite.o timeoutconn.o constmap.o case.a ip.o control.o auto_qmail.o \
 	sig.a ndelay.a open.a getln.a substdio.a stralloc.a alloc.a \
 	error.a str.a fs.a  `cat socket.lib`
 
@@ -1887,6 +1891,10 @@ scan_ulong.o: \
 compile scan_ulong.c scan.h
 	./compile scan_ulong.c
 
+scan_xlong.o: \
+compile scan_xlong.c scan.h
+	./compile scan_xlong.c
+
 seek.a: \
 makelib seek_cur.o seek_end.o seek_set.o seek_trunc.o
 	./makelib seek.a seek_cur.o seek_end.o seek_set.o \
@@ -2004,7 +2012,8 @@ str_start.c lock.h lock_ex.c lock_exnb.c lock_un.c tryflock.c getln.3 \
 getln.h getln.c getln2.3 getln2.c sgetopt.3 sgetopt.h sgetopt.c \
 subgetopt.3 subgetopt.h subgetopt.c error.3 error_str.3 error_temp.3 \
 error.h error.c error_str.c error_temp.c fmt.h fmt_str.c fmt_strn.c \
-fmt_uint.c fmt_uint0.c fmt_ulong.c scan.h scan_ulong.c scan_8long.c \
+fmt_uint.c fmt_uint0.c fmt_ulong.c fmt_xlong.c scan.h scan_ulong.c \
+scan_8long.c scan_xlong.c \
 slurpclose.h slurpclose.c quote.h quote.c hfield.h hfield.c \
 headerbody.h headerbody.c token822.h token822.c control.h control.c \
 datetime.3 datetime.h datetime.c datetime_un.c prioq.h prioq.c \
@@ -2252,8 +2261,10 @@ find-systype trycpp.c
 tcp-env: \
 load tcp-env.o dns.o remoteinfo.o timeoutread.o timeoutwrite.o \
 timeoutconn.o ip.o ipalloc.o case.a ndelay.a sig.a env.a getopt.a \
-stralloc.a alloc.a substdio.a error.a str.a fs.a dns.lib socket.lib
+stralloc.a alloc.a substdio.a error.a str.a fs.a dns.lib socket.lib \
+constmap.o control.o open.a getln.a
 	./load tcp-env dns.o remoteinfo.o timeoutread.o \
+	constmap.o control.o open.a getln.a \
 	timeoutwrite.o timeoutconn.o ip.o ipalloc.o case.a ndelay.a \
 	sig.a env.a getopt.a stralloc.a alloc.a substdio.a error.a \
 	str.a fs.a `cat dns.lib` `cat socket.lib`
@@ -2282,7 +2293,7 @@ compile tcpto_clean.c tcpto.h open.h substdio.h readwrite.h
 
 timeoutconn.o: \
 compile timeoutconn.c ndelay.h select.h error.h readwrite.h ip.h \
-byte.h timeoutconn.h
+byte.h timeoutconn.h control.h constmap.h stralloc.h str.h
 	./compile timeoutconn.c
 
 timeoutread.o: \
