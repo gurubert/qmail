@@ -74,10 +74,6 @@ stralloc senddomain = {0};
 
 /* Outgoing IP patch: Ideas taken from Alberto Brealey Guzmain (tx) */ 
 
-stralloc domainips = {0};
-struct constmap mapdomainips;
-char domainip[4];
-
 int flagauth = 0;		/* login = 1; plain = 2; crammd5 = 3 */
 stralloc authsenders = {0};
 struct constmap mapauthsenders;
@@ -110,9 +106,6 @@ for (i = 0;i < sa->len;++i) {
 ch = sa->s[i]; if (ch < 33) ch = '?'; if (ch > 126) ch = '?';
 if (substdio_put(subfdoutsmall,&ch,1) == -1) _exit(0); } }
 
-<<<<<<< HEAD
-void temp_noip() { out("Zinvalid ipaddr in control/domainips (#4.3.0)\n"); zerodie(); }
-=======
 #ifdef INET6
 void temp_badip6() { out("Z\
 Unable to parse IPv6 address in control/domainbindings6 (#4.3.0)\n"); zerodie(); }
@@ -123,7 +116,6 @@ Unable to parse IP address in control/domainbindings (#4.3.0)\n"); zerodie(); }
 void temp_noip() { out("Zinvalid IPv4 address in control/outgoingip (#4.3.0)\n"); zerodie(); }
 void temp_nobind1() { out("ZUnable to initialize ixlocal (-1). (#4.3.0)\n"); zerodie(); }
 void temp_nobind2() { out("ZUnable to set ixlocal (-2). (#4.3.0)\n"); zerodie(); }
->>>>>>> ipv6
 void temp_nomem() { out("ZOut of memory. (#4.3.0)\n"); zerodie(); }
 void temp_oserr() { out("Z\
 System resources temporarily unavailable. (#4.3.0)\n"); zerodie(); }
@@ -1080,14 +1072,6 @@ void getcontrols()
     case 1:
       if (!constmap_init(&maproutes,routes.s,routes.len,1)) temp_nomem(); break;
   }
-  switch(control_readfile(&domainips,"control/domainips",0)) {
-    case -1:
-      temp_control();
-    case 0:
-      if (!constmap_init(&mapdomainips,"",0,1)) temp_nomem(); break;
-    case 1:
-      if (!constmap_init(&mapdomainips,domainips.s,domainips.len,1)) temp_nomem(); break;
-  }
   switch(control_readfile(&authsenders,"control/authsenders",0)) {
     case -1:
        temp_control();
@@ -1122,9 +1106,6 @@ void getcontrols()
   }
 }
 
-<<<<<<< HEAD
-int main(argc,argv)
-=======
 int timeoutconn46(fd, ix, port, timeout)
 int fd;
 struct ip_mx *ix;
@@ -1139,57 +1120,30 @@ int timeout;
 }
 
 void main(argc,argv)
->>>>>>> ipv6
 int argc;
 char **argv;
 {
   static ipalloc ip = {0};
-<<<<<<< HEAD
   struct stat st;
-  int i, j, k, m;
-=======
-  int i;
-  int r;
->>>>>>> ipv6
+  int i, j, k, m, r;
   unsigned long random;
   char **recips;
   unsigned long prefme;
   int flagallaliases;
   int flagalias;
   char *relayhost;
-<<<<<<< HEAD
-  char *localip;
    
-=======
-
->>>>>>> ipv6
   sig_pipeignore();
   if (argc < 4) perm_usage();
   if (chdir(auto_qmail) == -1) temp_chdir();
   getcontrols();
-<<<<<<< HEAD
  
   if (!stralloc_copys(&host,argv[1])) temp_nomem();
 
   authsender = 0;
-=======
-
-
-  if (!stralloc_copys(&host,argv[1])) temp_nomem();
-
->>>>>>> ipv6
   relayhost = 0;
 
   addrmangle(&sender,argv[2],&flagalias,0);
-
-/* this file is too long -------------------------------------- set domain ip     */
-
-  localip = 0;
-  for (i = 0;i <= canonhost.len;++i)
-    if ((i == 0) || (i == canonhost.len) || (canonhost.s[i] == '.'))
-      if (localip = constmap(&mapdomainips,canonhost.s + i,canonhost.len - i))
-       break;
-  if (localip && !*localip) localip = 0;
 
 /* this file is too long -------------------------------------- authsender routes */
 
@@ -1197,9 +1151,10 @@ char **argv;
     if ((i == 0) || (i == sender.len) || (sender.s[i] == '.') || (sender.s[i] == '@'))
       if (authsender = constmap(&mapauthsenders,sender.s + i,sender.len - i))
         break;
-<<<<<<< HEAD
 
   if (authsender && !*authsender) authsender = 0;
+
+  if (relayhost && !*relayhost) relayhost = 0;
 
   if (authsender) {
     i = str_chr(authsender,'|');
@@ -1219,7 +1174,6 @@ char **argv;
       scan_ulong(authsender + i + 1,&port);
       authsender[i] = 0;
 =======
-  if (relayhost && !*relayhost) relayhost = 0;
 
   if (relayhost) {
     i = str_chr(relayhost,':');
@@ -1456,11 +1410,8 @@ char **argv;
 
 /* this file is too long -------------------------------------- work thru reciplist */
 
-<<<<<<< HEAD
-=======
   addrmangle(&sender,argv[2],&flagalias,0);
 
->>>>>>> ipv6
   if (!saa_readyplus(&reciplist,0)) temp_nomem();
   if (ipme_init() != 1) temp_oserr();
 
@@ -1513,28 +1464,6 @@ char **argv;
     smtpfd = socket(ip.ix[i].af,SOCK_STREAM,0);
     if (smtpfd == -1) temp_oserr();
 
-<<<<<<< HEAD
-    if (localip) {						/* set domain ip */
-      if (!ip_scan(localip,&domainip)) temp_noip();
-      if (!stralloc_copy(&helohost,&canonhost)) temp_nomem(); 	/* could be in control file */
-    
-      if (domainip[0] || domainip[1] || domainip[2] || domainip[3]) {
-        struct sockaddr_in si;
-        si.sin_family=AF_INET;
-        si.sin_port=0;
-        byte_copy(&si.sin_addr,4,domainip);
-        if (bind(smtpfd,(struct sockaddr*)&si,sizeof(si))) temp_oserr();
-      }
-    }
- 
-    if (timeoutconn(smtpfd,&ip.ix[i].ip,(unsigned int) port,timeoutconnect) == 0) {
-      tcpto_err(&ip.ix[i].ip,0);
-      partner = ip.ix[i].ip;
-      if (qmtpsend) 
-         qmtp(); 
-      else 
-         smtp(); /* read THOUGHTS; section 6 */
-=======
     /* for domainbindings */
     r = getcontrol_domainbindings(&ip.ix[i]);
     if (r == -1) temp_nobind1();
@@ -1556,8 +1485,10 @@ char **argv;
     if (timeoutconn46(smtpfd,&ip.ix[i],(unsigned int) port,timeoutconnect) == 0) {
       tcpto_err(&ip.ix[i],0);
       partner = ip.ix[i];
-      smtp(); /* does not return */
->>>>>>> ipv6
+      if (qmtpsend) 
+         qmtp(); 
+      else 
+         smtp(); /* read THOUGHTS; section 6 */
     }
     tcpto_err(&ip.ix[i],errno == error_timeout
 #ifdef TCPTO_REFUSED

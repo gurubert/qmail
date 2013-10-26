@@ -241,7 +241,6 @@ Unknown TLS error for host:
 always exits zero.
 .SH "CONTROL FILES"
 .TP 5
-<<<<<<< HEAD
 .I authsenders
 Authenticated sender.
 For each
@@ -285,43 +284,6 @@ can be constructed as follows:
    :mailrelay.example.com|e=mc2|testpass
 .EE
 .TP 5
-.I domaincerts
-In case
-.B qmail-remote
-needs to present a client certificate to the server 
-(for authentication purposes) the PEM encoded 
-X.509 certificate can be provided per sending domain:
-.IR domain\fB:\fIcertificate\fB|\fIkeyfile\fB|\fIpassword .
-If 
-.I domain
-equals '*' this
-.I certificate
-is used as default.
-The file 
-.I certificate 
-may include the private key, thus 
-.I keyfile
-can be ommitted. Additionally, the private key can be protected with a
-.IR password .
-
-.TP 5
-.I domainips
-IP addresses to be used on outgoing connections.
-Each line has the form
-.IR senddomain\fB:\fIlocalip ,
-without any extra spaces.
-If
-.I domain
-matches the domain part in
-.IR sender ,
-.B qmail-remote
-will bind to
-.IR localip
-when connecting to
-.IR host .
-If it matches, it will also set the HELO string to the domain part of
-.IR sender .
-=======
 .I bindroutes
 Artificial interface binding routes for IPv4 addresses.
 Each route has the form
@@ -503,7 +465,25 @@ takes precedence over
 .IR bindroutes6
 and
 .IR outgoingip6 .
->>>>>>> ipv6
+.TP 5
+.I domaincerts
+In case
+.B qmail-remote
+needs to present a client certificate to the server 
+(for authentication purposes) the PEM encoded 
+X.509 certificate can be provided per sending domain:
+.IR domain\fB:\fIcertificate\fB|\fIkeyfile\fB|\fIpassword .
+If 
+.I domain
+equals '*' this
+.I certificate
+is used as default.
+The file 
+.I certificate 
+may include the private key, thus 
+.I keyfile
+can be ommitted. Additionally, the private key can be protected with a
+.IR password .
 .TP 5
 .I helohost
 Current host name,
