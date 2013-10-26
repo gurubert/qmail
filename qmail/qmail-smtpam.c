@@ -44,7 +44,7 @@ stralloc host = {0};
 stralloc sender = {0};
 stralloc recipient = {0};
 
-struct ip_address partner;
+struct ip_mx partner;
 
 void out(s) char *s; { if (substdio_puts(subfdoutsmall,s) == -1) _exit(111); }
 void zero() { if (substdio_put(subfdoutsmall,"\0",1) == -1) _exit(111); }
@@ -296,17 +296,30 @@ char **argv;
     perm_ambigmx();
  
   for (i = 0;i < ip.len;++i) if (ip.ix[i].pref < prefme) {
-    if (tcpto(&ip.ix[i].ip)) continue;
+    if (tcpto(&ip.ix[i])) continue;
  
-    smtpfd = socket(AF_INET,SOCK_STREAM,0);
+    smtpfd = socket(ip.ix[i].af,SOCK_STREAM,0);
     if (smtpfd == -1) temp_oserr();
- 
-    if (timeoutconn(smtpfd,&ip.ix[i].ip,(unsigned int) port,timeoutconnect) == 0) {
-      tcpto_err(&ip.ix[i].ip,0);
-      partner = ip.ix[i].ip;
+
+     /* for bindroutes */
+    r = bind_by_bindroutes(&ip.ix[i], 0);
+    if (r == -1) temp_nobind1();
+    if (r == -2) temp_nobind2();
+
+    /* for outgoingip/outgoingip6 */
+    r = getcontrol_outgoingip(&ip.ix[i]);
+    if (r == -1) temp_nobind1();
+    if (r == -2) temp_nobind2();
+
+    /* for helohostbindings */
+    getcontrol_helohostbindings(&ip.ix[i]);
+    
+    if (timeoutconn46(smtpfd,&ip.ix[i],(unsigned int) port,timeoutconnect) == 0) {
+      tcpto_err(&ip.ix[i],0);
+      partner = ip.ix[i];
       smtp(); /* does not return */
     }
-    tcpto_err(&ip.ix[i].ip,errno == error_timeout);
+    tcpto_err(&ip.ix[i],errno == error_timeout);
     close(smtpfd);
   }
   
