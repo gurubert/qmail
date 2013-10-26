@@ -782,9 +782,6 @@ void qmtp()
 
 /* this file is too long -------------------------------------- common */
 
-stralloc canonhost = {0};
-stralloc canonbox = {0};
-
 void addrmangle(saout,s,flagalias,flagcname)
 stralloc *saout; /* host has to be canonical, box has to be quoted */
 char *s;
