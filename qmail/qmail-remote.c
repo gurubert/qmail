@@ -72,8 +72,6 @@ stralloc canonhost = {0};
 stralloc canonbox = {0};
 stralloc senddomain = {0};
 
-/* Outgoing IP patch: Ideas taken from Alberto Brealey Guzmain (tx) */ 
-
 int flagauth = 0;		/* login = 1; plain = 2; crammd5 = 3 */
 stralloc authsenders = {0};
 struct constmap mapauthsenders;
@@ -289,6 +287,7 @@ void quit(prepend,append)
 char *prepend;
 char *append;
 {
+  substdio_putsflush(&smtpto,"QUIT\r\n");
   /* waiting for remote side is just too ridiculous */
   out(prepend);
   outhost();
@@ -783,6 +782,9 @@ void qmtp()
 
 /* this file is too long -------------------------------------- common */
 
+stralloc canonhost = {0};
+stralloc canonbox = {0};
+
 void addrmangle(saout,s,flagalias,flagcname)
 stralloc *saout; /* host has to be canonical, box has to be quoted */
 char *s;
@@ -1119,7 +1121,7 @@ int timeout;
   return timeoutconn(fd, &ix->addr.ip, port, timeout);
 }
 
-void main(argc,argv)
+int main(argc,argv)
 int argc;
 char **argv;
 {
@@ -1154,8 +1156,6 @@ char **argv;
 
   if (authsender && !*authsender) authsender = 0;
 
-  if (relayhost && !*relayhost) relayhost = 0;
-
   if (authsender) {
     i = str_chr(authsender,'|');
     if (authsender[i]) {
@@ -1173,14 +1173,6 @@ char **argv;
     if (authsender[i]) {
       scan_ulong(authsender + i + 1,&port);
       authsender[i] = 0;
-=======
-
-  if (relayhost) {
-    i = str_chr(relayhost,':');
-    if (relayhost[i]) {
-      scan_ulong(relayhost + i + 1,&port);
-      relayhost[i] = 0;
->>>>>>> ipv6
     }
     if (!stralloc_copys(&relayhost,authsender)) temp_nomem();
     if (!stralloc_copys(&host,authsender)) temp_nomem();
