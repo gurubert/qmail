@@ -263,7 +263,6 @@ int main()
   do_lst("domaincerts","No domain certs defined.","Domain certs: ","");
   do_lst("domainbindings","No sender domain based local IPv4 bindings.","Sender domain local IPv4 binding: ","");
   do_lst("domainbindings6","No sender domain based local IPv6 bindings.","Sender domain local IPv6 binding: ","");
-  do_lst("domainips","No domain ip mappings defined.","Map from sender domain part to local ip: ","");
   do_str("doublebouncehost",1,"doublebouncehost","2B recipient host: ");
   do_str("doublebounceto",0,"postmaster","2B recipient user: ");
   do_str("envnoathost",1,"envnoathost","Presumed domain name is ");
@@ -348,7 +347,6 @@ int main()
     if (str_equal(d->d_name,"databytes")) continue;
     if (str_equal(d->d_name,"defaultdomain")) continue;
     if (str_equal(d->d_name,"defaulthost")) continue;
-    if (str_equal(d->d_name,"domainips")) continue;
     if (str_equal(d->d_name,"domainbindings")) continue;
     if (str_equal(d->d_name,"domainbindings6")) continue;
     if (str_equal(d->d_name,"domaincerts")) continue;
